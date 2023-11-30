@@ -1,9 +1,6 @@
 package ust.tad.terraformmpsplugin.models.tadm;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public class TechnologyAgnosticDeploymentModel {
     
@@ -152,6 +149,68 @@ public class TechnologyAgnosticDeploymentModel {
             ", componentTypes='" + getComponentTypes() + "'" +
             ", relationTypes='" + getRelationTypes() + "'" +
             "}";
+    }
+
+    /**
+     * Add new properties to the existing ones.
+     * @param newProperties the properties to add.
+     */
+    public void addProperties(Collection<Property> newProperties) {
+        List<Property> properties = this.getProperties();
+        properties.addAll(newProperties);
+        this.setProperties(properties);
+    }
+
+    /**
+     * Add new components to the existing ones.
+     * @param newComponents the components to add.
+     */
+    public void addComponents(Collection<Component> newComponents) {
+        List<Component> components = this.getComponents();
+        components.addAll(newComponents);
+        this.setComponents(components);
+    }
+
+    /**
+     * Add new relations to the existing ones.
+     * @param newRelations the relations to add.
+     */
+    public void addRelations(Collection<Relation> newRelations) {
+        List<Relation> relations = this.getRelations();
+        relations.addAll(newRelations);
+        this.setRelations(relations);
+    }
+
+    /**
+     * Add new component types to the existing ones.
+     * @param newComponentTypes the component types to add.
+     */
+    public void addComponentTypes(Collection<ComponentType> newComponentTypes) {
+        List<ComponentType> componentTypes = this.getComponentTypes();
+        componentTypes.addAll(newComponentTypes);
+        this.setComponentTypes(componentTypes);
+    }
+
+    /**
+     * Add new relation types to the existing ones.
+     * @param newRelationTypes the relation types to add.
+     */
+    public void addRelationTypes(Collection<RelationType> newRelationTypes) {
+        List<RelationType> relationTypes = this.getRelationTypes();
+        relationTypes.addAll(newRelationTypes);
+        this.setRelationTypes(relationTypes);
+    }
+
+    /**
+     * Add all properties and model entities from another tadm to this tadm.
+     * @param otherTADM the tadm from which to add properties and model entities.
+     */
+    public void addFromOtherTADM(TechnologyAgnosticDeploymentModel otherTADM) {
+        this.addProperties(otherTADM.getProperties());
+        this.addComponents(otherTADM.getComponents());
+        this.addRelations(otherTADM.getRelations());
+        this.addComponentTypes(otherTADM.getComponentTypes());
+        this.addRelationTypes(otherTADM.getRelationTypes());
     }
     
     
