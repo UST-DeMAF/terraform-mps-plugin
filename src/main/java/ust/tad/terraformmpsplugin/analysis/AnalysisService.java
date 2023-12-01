@@ -152,8 +152,6 @@ public class AnalysisService {
                 }
             }
         }
-        System.out.println("Found resource: "+resources.toString());
-        System.out.println("Found variables: "+variables.toString());
         this.tadm = transformationService.transformInternalToTADM(this.tadm,
                 new TerraformDeploymentModel(resources, variables));
     }
@@ -174,7 +172,6 @@ public class AnalysisService {
      */
     private void parseFile(URL url) throws IOException, InvalidNumberOfLinesException,
             InvalidAnnotationException {
-        System.out.println("Parsing file: "+url.toString());
         DeploymentModelContent deploymentModelContent = new DeploymentModelContent();
         deploymentModelContent.setLocation(url);
 

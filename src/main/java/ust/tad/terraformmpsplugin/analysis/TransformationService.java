@@ -133,7 +133,8 @@ public class TransformationService {
      * deployment model remains unchanged.
      *
      * @param tadm the technology-agnostic deployment model to post-process
-     * @return the modified technology-agnostic deployment model
+     * @return the modified technology-agnostic deployment model or the original one of the
+     * processing failed
      */
     private TechnologyAgnosticDeploymentModel postProcessTADM(TechnologyAgnosticDeploymentModel tadm) {
         if (azureRMPostProcessor.isPostProcessorApplicable(tadm)) {

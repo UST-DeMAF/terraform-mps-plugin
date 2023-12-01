@@ -3,6 +3,7 @@ package ust.tad.terraformmpsplugin.analysis.terraformproviders;
 import org.springframework.stereotype.Service;
 import ust.tad.terraformmpsplugin.models.tadm.*;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,10 +37,13 @@ public class AzureRMPostProcessor {
      * @throws PostProcessorFailedException if the post-processing fails.
      */
     public TechnologyAgnosticDeploymentModel runPostProcessor(TechnologyAgnosticDeploymentModel tadm) throws PostProcessorFailedException {
-        for (Component component : tadm.getComponents()) {
-            if (component.getType().getName().equals("azurerm_kubernetes_cluster")) {
+        Iterator<Component> componentIterator = tadm.getComponents().iterator();
+        while (componentIterator.hasNext()) {
+            Component componentToTest = componentIterator.next();
+            if (componentToTest.getType().getName().equals("azurerm_kubernetes_cluster")) {
                 try {
-                    replaceAKS(tadm, component);
+                    replaceAKS(tadm, componentToTest);
+                    componentIterator.remove();
                 } catch (Exception e) {
                     throw new PostProcessorFailedException("The AzureRM Post Processor failed " + "with reason: " + e.getMessage());
                 }
@@ -78,7 +82,11 @@ public class AzureRMPostProcessor {
         //iterate over nodes and create components
         for (int i = 0; i < nodeCount; i++) {
             Component physicalNodeComponent = new Component();
-            physicalNodeComponent.setName(aksComponent.getName().concat("_node_").concat(String.valueOf(nodeCount++)));
+            if (nodeCount == 1) {
+                physicalNodeComponent.setName(aksComponent.getName().concat("_node"));
+            } else {
+                physicalNodeComponent.setName(aksComponent.getName().concat("_node_").concat(String.valueOf(nodeCount)));
+            }
             physicalNodeComponent.setType(physicalNodeType);
             physicalNodeComponent.setConfidence(Confidence.CONFIRMED);
             Optional<Property> vmSizeProperty =
@@ -88,13 +96,21 @@ public class AzureRMPostProcessor {
             }
 
             Component operatingSystemComponent = new Component();
-            operatingSystemComponent.setName(aksComponent.getName().concat("_operating-system_").concat(String.valueOf(nodeCount++)));
+            if (nodeCount == 1) {
+                operatingSystemComponent.setName(aksComponent.getName().concat("_operating-system"));
+            } else {
+                operatingSystemComponent.setName(aksComponent.getName().concat("_operating-system_").concat(String.valueOf(nodeCount)));
+            }
             operatingSystemComponent.setType(operatingSystemType);
             operatingSystemComponent.setConfidence(Confidence.CONFIRMED);
             operatingSystemComponent.setProperties(createPropertiesForDefaultOperatingSystem());
 
             Component containerRuntimeComponent = new Component();
-            containerRuntimeComponent.setName(aksComponent.getName().concat("_container-runtime_").concat(String.valueOf(nodeCount++)));
+            if (nodeCount == 1) {
+                containerRuntimeComponent.setName(aksComponent.getName().concat("_container-runtime"));
+            } else {
+                containerRuntimeComponent.setName(aksComponent.getName().concat("_container-runtime_").concat(String.valueOf(nodeCount)));
+            }
             containerRuntimeComponent.setType(containerRuntimeType);
             containerRuntimeComponent.setConfidence(Confidence.CONFIRMED);
             containerRuntimeComponent.setProperties(createPropertiesForDefaultContainerRuntime());
