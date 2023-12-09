@@ -206,9 +206,10 @@ public class AnalysisService {
                     // Parse Argument
                     if (nextline.contains("=")) {
                         String[] tokens = nextline.split("=");
+                        // TODO check for lists and maps
                         resource.addArgument(new Argument(tokens[0].trim(), tokens[1].trim()));
                         lines.add(new Line(lineNumber, comprehensibility, true));
-                        // Parse Block
+                    // Parse Block
                     } else if (nextline.contains("{")) {
                         nextline = nextline.trim();
                         String[] tokens = nextline.split(" ");
