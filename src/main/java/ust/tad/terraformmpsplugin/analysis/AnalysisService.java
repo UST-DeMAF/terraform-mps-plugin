@@ -20,6 +20,7 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class AnalysisService {
@@ -288,12 +289,12 @@ public class AnalysisService {
         String argumentExpression = tokens[1].trim();
         //list: comma seperated in same line or in different lines, comma after the final value is allowed, but not required
         if (argumentExpression.startsWith("[")) {
-            List<String> listElements = new ArrayList<>(Arrays.stream(argumentExpression.split(",")).map(String::trim).toList());
+            List<String> listElements = Arrays.stream(argumentExpression.split(",")).map(String::trim).collect(Collectors.toList());
             lines.add(new Line(lineNumber, comprehensibility, true));
             while (!(listElements.get(listElements.size()-1)).trim().endsWith("]")) {
                 currentLine = reader.readLine();
                 lineNumber++;
-                listElements.addAll(Arrays.stream(currentLine.split(",")).map(String::trim).toList());
+                listElements.addAll(Arrays.stream(currentLine.split(",")).map(String::trim).collect(Collectors.toList()));
                 lines.add(new Line(lineNumber, comprehensibility, true));
             }
             arguments.add(new Argument(argumentIdentifier, listElements.toString().replaceFirst("\\[\\[", "[").replaceFirst(", ,*]]", "]")));
@@ -303,7 +304,7 @@ public class AnalysisService {
             String argumentExpressionLine = argumentExpression.replaceFirst("\\{", "");
             while (!argumentExpressionLine.contains("}")) {
                 if (argumentExpressionLine.contains("=")) {
-                    List<String> listOfArguments = new ArrayList<>(Arrays.stream(argumentExpressionLine.split(",")).map(String::trim).toList());
+                    List<String> listOfArguments = Arrays.stream(argumentExpressionLine.split(",")).map(String::trim).collect(Collectors.toList());
                     for (String argumentString: listOfArguments ) {
                         String[] argumentFields = argumentString.split("=");
                         arguments.add(new Argument(argumentIdentifier.concat(".").concat(argumentFields[0].trim()), argumentFields[1].trim()));
@@ -315,7 +316,7 @@ public class AnalysisService {
             }
             if (argumentExpressionLine.contains("=")) {
                 argumentExpressionLine = argumentExpressionLine.replace("}", "");
-                List<String> listOfArguments = new ArrayList<>(Arrays.stream(argumentExpressionLine.split(",")).map(String::trim).toList());
+                List<String> listOfArguments = Arrays.stream(argumentExpressionLine.split(",")).map(String::trim).collect(Collectors.toList());
                 for (String argumentString: listOfArguments ) {
                     String[] argumentFields = argumentString.split("=");
                     arguments.add(new Argument(argumentIdentifier.concat(".").concat(argumentFields[0].trim()), argumentFields[1].trim()));
