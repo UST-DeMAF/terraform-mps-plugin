@@ -69,9 +69,13 @@ public class Block {
             "}";
     }
     
-    public Boolean addArgument(Argument argument) {
-        return this.arguments.add(argument);
+    public void addArgument(Argument argument) {
+        this.arguments.add(argument);
     }
 
-
+    public void addArguments(Set<Argument> arguments) {
+        for (Argument argument: arguments) {
+            this.addArgument(argument);
+        }
+    }
 }

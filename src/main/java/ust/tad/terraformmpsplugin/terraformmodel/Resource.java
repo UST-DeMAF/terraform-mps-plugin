@@ -103,12 +103,18 @@ public class Resource {
             "}";
     }
     
-    public Boolean addArgument(Argument argument) {
-        return this.arguments.add(argument);
+    public void addArgument(Argument argument) {
+        this.arguments.add(argument);
     }
 
-    public Boolean addBlock(Block block) {
-        return this.blocks.add(block);
+    public void addArguments(Set<Argument> arguments) {
+        for (Argument argument: arguments) {
+            this.addArgument(argument);
+        }
+    }
+
+    public void addBlock(Block block) {
+        this.blocks.add(block);
     }
 
     

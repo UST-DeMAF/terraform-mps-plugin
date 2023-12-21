@@ -158,8 +158,7 @@ public class AnalysisService {
 
     /**
      * Parses in a file.
-     * Creates entities of the Terraform model for the resources, providers and variables it can
-     * find.
+     * Creates entities of the Terraform model for the resources and variables it can find.
      * At the same time, updates the technology-specific deployment model.
      * Iterates over the lines in the file and adds corresponding Line entities to a new
      * DeploymentModelContent.
@@ -174,7 +173,6 @@ public class AnalysisService {
             InvalidAnnotationException {
         DeploymentModelContent deploymentModelContent = new DeploymentModelContent();
         deploymentModelContent.setLocation(url);
-
         List<Line> lines = new ArrayList<>();
         int lineNumber = 1;
         BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
@@ -191,7 +189,7 @@ public class AnalysisService {
                 line.setNumber(lineNumber);
                 line.setAnalyzed(true);
                 double comprehensibility = 0D;
-                //set comprehensibility based on resource type   
+                //set comprehensibility based on resource type
                 String providerOfResource = resourceType.split("_")[0];
                 if (supportedProviders.contains(providerOfResource)) {
                     comprehensibility = 1D;
@@ -205,10 +203,8 @@ public class AnalysisService {
                 while (!nextline.startsWith("}")) {
                     // Parse Argument
                     if (nextline.contains("=")) {
-                        String[] tokens = nextline.split("=");
-                        // TODO check for lists and maps
-                        resource.addArgument(new Argument(tokens[0].trim(), tokens[1].trim()));
-                        lines.add(new Line(lineNumber, comprehensibility, true));
+                        resource.addArguments(parseArgument(reader, nextline, lines, lineNumber, comprehensibility, ""));
+                        lineNumber = lines.stream().max(Comparator.comparing(Line::getNumber)).get().getNumber();
                     // Parse Block
                     } else if (nextline.contains("{")) {
                         nextline = nextline.trim();
@@ -221,10 +217,8 @@ public class AnalysisService {
                             nextline = reader.readLine();
                             while (!nextline.trim().startsWith("}")) {
                                 if (nextline.contains("=")) {
-                                    String[] argumentTokens = nextline.split("=");
-                                    block.addArgument(new Argument(argumentTokens[0].trim(),
-                                            argumentTokens[1].trim()));
-                                    lines.add(new Line(lineNumber, comprehensibility, true));
+                                    block.addArguments(parseArgument(reader, nextline, lines, lineNumber, comprehensibility, ""));
+                                    lineNumber = lines.stream().max(Comparator.comparing(Line::getNumber)).get().getNumber();
                                 }// TODO else nested block?
                                 lineNumber++;
                                 nextline = reader.readLine();
@@ -244,18 +238,19 @@ public class AnalysisService {
                 lineNumber++;
                 nextline = reader.readLine();
                 while (!nextline.startsWith("}")) {
+                    // TODO check if expression overwritten by command
                     if (nextline.trim().split(" ")[0].equals("default")) {
-                        String[] tokens = nextline.split("=");
-                        expression = tokens[1].trim().replaceAll("(^\")|(\"$)", "");
-                        lines.add(new Line(lineNumber, 1D, true));
+                        Set<Argument> arguments = parseArgument(reader, nextline, lines, lineNumber, 1D, identifier);
+                        lineNumber = lines.stream().max(Comparator.comparing(Line::getNumber)).get().getNumber();
+                        for (Argument argument: arguments) {
+                            this.variables.add(new Variable(argument.getIdentifier(), argument.getExpression()));
+                        }
                     } else {
                         lines.add(new Line(lineNumber, 0D, true));
                     }
                     lineNumber++;
                     nextline = reader.readLine();
                 }
-                // TODO check if expression overwritten by command
-                this.variables.add(new Variable(identifier, expression));
             }
             lineNumber++;
         }
@@ -263,6 +258,76 @@ public class AnalysisService {
 
         deploymentModelContent.setLines(lines);
         this.tsdm.addDeploymentModelContent(deploymentModelContent);
+    }
+
+    /**
+     * Parse arguments from a Terraform file.
+     * Argument expressions can be primitive types, but also maps or lists.
+     * This method tests which argument expression type is used and parses in the argument accordingly.
+     * Lists and maps can span across several lines, therefore read in all relevant lines.
+     * For lists, one argument is created with the argument expression set to the complete list.
+     * For maps, one argument for each key-value pair in the map is created.
+     *
+     * @param reader the BufferedReader that reads the file.
+     * @param currentLine the line in the file that is currently read.
+     * @param lines the lines of the internal tsdm.
+     * @param lineNumber the number of the line the reader is currently at.
+     * @param comprehensibility that should be set for the parsed arguments.
+     * @param identifier an optional identifier for the argument.
+     * @return a set of parsed arguments.
+     * @throws IOException
+     * @throws InvalidAnnotationException
+     */
+    private Set<Argument> parseArgument(BufferedReader reader, String currentLine, List<Line> lines, int lineNumber, double comprehensibility, String identifier) throws IOException, InvalidAnnotationException {
+        Set<Argument> arguments = new HashSet<>();
+        String[] tokens = currentLine.split("=",2);
+        String argumentIdentifier = tokens[0].trim();
+        if (!identifier.isEmpty()) {
+            argumentIdentifier = identifier;
+        }
+        String argumentExpression = tokens[1].trim();
+        //list: comma seperated in same line or in different lines, comma after the final value is allowed, but not required
+        if (argumentExpression.startsWith("[")) {
+            List<String> listElements = new ArrayList<>(Arrays.stream(argumentExpression.split(",")).map(String::trim).toList());
+            lines.add(new Line(lineNumber, comprehensibility, true));
+            while (!(listElements.get(listElements.size()-1)).trim().endsWith("]")) {
+                currentLine = reader.readLine();
+                lineNumber++;
+                listElements.addAll(Arrays.stream(currentLine.split(",")).map(String::trim).toList());
+                lines.add(new Line(lineNumber, comprehensibility, true));
+            }
+            arguments.add(new Argument(argumentIdentifier, listElements.toString().replaceFirst("\\[\\[", "[").replaceFirst(", ,*]]", "]")));
+        //map Key/value pairs can be separated by either a comma or a line break.
+        //The values in a map can be arbitrary expressions.
+        } else if (argumentExpression.startsWith("{")) {
+            String argumentExpressionLine = argumentExpression.replaceFirst("\\{", "");
+            while (!argumentExpressionLine.contains("}")) {
+                if (argumentExpressionLine.contains("=")) {
+                    List<String> listOfArguments = new ArrayList<>(Arrays.stream(argumentExpressionLine.split(",")).map(String::trim).toList());
+                    for (String argumentString: listOfArguments ) {
+                        String[] argumentFields = argumentString.split("=");
+                        arguments.add(new Argument(argumentIdentifier.concat(".").concat(argumentFields[0].trim()), argumentFields[1].trim()));
+                    }
+                    lines.add(new Line(lineNumber, comprehensibility, true));
+                }
+                argumentExpressionLine = reader.readLine();
+                lineNumber++;
+            }
+            if (argumentExpressionLine.contains("=")) {
+                argumentExpressionLine = argumentExpressionLine.replace("}", "");
+                List<String> listOfArguments = new ArrayList<>(Arrays.stream(argumentExpressionLine.split(",")).map(String::trim).toList());
+                for (String argumentString: listOfArguments ) {
+                    String[] argumentFields = argumentString.split("=");
+                    arguments.add(new Argument(argumentIdentifier.concat(".").concat(argumentFields[0].trim()), argumentFields[1].trim()));
+                }
+                lines.add(new Line(lineNumber, comprehensibility, true));
+            }
+        // primitive types
+        } else {
+            arguments.add(new Argument(argumentIdentifier, argumentExpression));
+            lines.add(new Line(lineNumber, comprehensibility, true));
+        }
+        return arguments;
     }
 
 }
