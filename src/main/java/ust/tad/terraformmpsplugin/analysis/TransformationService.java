@@ -16,6 +16,8 @@ import ust.tad.terraformmpsplugin.terraformmodel.TerraformDeploymentModel;
 import java.io.File;
 import java.io.IOException;
 
+import static ust.tad.terraformmpsplugin.analysis.util.ComponentTypePostProcessor.mergeDuplicateComponentTypes;
+
 
 @Service
 public class TransformationService {
@@ -58,7 +60,8 @@ public class TransformationService {
         createMPSTerraformDeploymentModel(terraformDeploymentModel);
         runMPSTransformation();
         TechnologyAgnosticDeploymentModel transformationResult = importMPSResult();
-        tadm.addFromOtherTADM(transformationResult);
+        TechnologyAgnosticDeploymentModel mergedResult = mergeDuplicateComponentTypes(transformationResult);
+        tadm.addFromOtherTADM(mergedResult);
         if (runProviderPostProcessors) {
             tadm = postProcessTADM(tadm);
         }
