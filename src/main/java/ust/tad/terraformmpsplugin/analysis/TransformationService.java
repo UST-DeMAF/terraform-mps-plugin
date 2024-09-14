@@ -21,6 +21,8 @@ import java.util.Map;
 
 import static ust.tad.terraformmpsplugin.analysis.util.ComponentTypePostProcessor.mergeDuplicateComponentTypes;
 
+import static ust.tad.terraformmpsplugin.analysis.util.ComponentTypePostProcessor.mergeDuplicateComponentTypes;
+
 
 @Service
 public class TransformationService {
