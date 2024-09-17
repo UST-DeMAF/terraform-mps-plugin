@@ -9,6 +9,7 @@ WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 COPY mps-transformation-terraform ./mps-transformation-terraform
+RUN rm -rf ./mps-transformation-terraform/build
 RUN mkdir -p /app/mps-transformation-terraform/transformationInput
 
 RUN mvn clean package -DskipTests

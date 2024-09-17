@@ -5,16 +5,19 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.environment.EnvironmentUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ust.tad.terraformmpsplugin.analysis.terraformproviders.AzureRMPostProcessor;
+import ust.tad.terraformmpsplugin.analysis.terraformproviders.DockerPostProcessor;
 import ust.tad.terraformmpsplugin.analysis.terraformproviders.PostProcessorFailedException;
 import ust.tad.terraformmpsplugin.models.tadm.*;
 import ust.tad.terraformmpsplugin.terraformmodel.TerraformDeploymentModel;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 
 import static ust.tad.terraformmpsplugin.analysis.util.ComponentTypePostProcessor.mergeDuplicateComponentTypes;
 
@@ -35,6 +38,9 @@ public class TransformationService {
 
     @Autowired
     private AzureRMPostProcessor azureRMPostProcessor;
+
+    @Autowired
+    private DockerPostProcessor dockerPostProcessor;
 
     /**
      * Transforms given the internal Terraform model to an EDMM model.
@@ -101,8 +107,10 @@ public class TransformationService {
                 + mpsLocation
                 + " mpsBuild");
         DefaultExecutor executor = new DefaultExecutor();
-        executor.execute(prepareMps);
-        executor.execute(mpsBuild);
+        Map<String, String> environment = EnvironmentUtils.getProcEnvironment();
+        environment.put("JAVA_TOOL_OPTIONS", "");
+        executor.execute(prepareMps,environment);
+        executor.execute(mpsBuild,environment);
     }
 
     /**
@@ -144,6 +152,13 @@ public class TransformationService {
             try {
                 return azureRMPostProcessor.runPostProcessor(tadm);
             } catch (PostProcessorFailedException e) {
+                return tadm;
+            }
+        }
+        if(dockerPostProcessor.isPostProcessorApplicable(tadm)){
+            try{
+                return dockerPostProcessor.runPostProcessor(tadm);
+            } catch (PostProcessorFailedException | InvalidPropertyValueException e) {
                 return tadm;
             }
         }
