@@ -145,7 +145,9 @@ public class TransformationService {
     if (dockerPostProcessor.isPostProcessorApplicable(tadm)) {
       try {
         return dockerPostProcessor.runPostProcessor(tadm);
-      } catch (PostProcessorFailedException | InvalidPropertyValueException e) {
+      } catch (PostProcessorFailedException
+          | InvalidPropertyValueException
+          | InvalidRelationException e) {
         return tadm;
       }
     }

@@ -1,5 +1,6 @@
 package ust.tad.terraformmpsplugin.analysis.terraformproviders;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import ust.tad.terraformmpsplugin.models.tadm.*;
@@ -31,8 +32,9 @@ public class DockerPostProcessor {
    * @throws PostProcessorFailedException if the post-processing fails.
    */
   public TechnologyAgnosticDeploymentModel runPostProcessor(TechnologyAgnosticDeploymentModel tadm)
-      throws PostProcessorFailedException, InvalidPropertyValueException {
+      throws PostProcessorFailedException, InvalidPropertyValueException, InvalidRelationException {
     createContainerRuntime(tadm);
+    createHostedOnRelations(tadm);
     return tadm;
   }
 
@@ -41,15 +43,58 @@ public class DockerPostProcessor {
    *
    * @param tadm the tadm to be modified
    */
-  private void createContainerRuntime(TechnologyAgnosticDeploymentModel tadm) throws InvalidPropertyValueException {
+  private void createContainerRuntime(TechnologyAgnosticDeploymentModel tadm)
+      throws InvalidPropertyValueException {
     Property name = new Property("name", PropertyType.STRING, false, null, Confidence.SUSPECTED);
     Property version = new Property("version", PropertyType.STRING, false, null, null);
-    ComponentType containerRuntimeType = new ComponentType("container_runtime", null, List.of(name, version), null, null);
+    ComponentType containerRuntimeType =
+        new ComponentType("container_runtime", null, List.of(name, version), null, null);
     tadm.getComponentTypes().add(containerRuntimeType);
 
-    Property runtimeName = new Property("name", PropertyType.STRING, false, "Docker Desktop", Confidence.SUSPECTED);
-    Property runtimeVersion = new Property("version", PropertyType.STRING, false, "4.34.2", Confidence.SUSPECTED);
-    Component containerRuntime = new Component("default-container-runtime", null, List.of(runtimeName, runtimeVersion), null, containerRuntimeType, null, Confidence.SUSPECTED);
+    Property runtimeName =
+        new Property("name", PropertyType.STRING, false, "Docker Desktop", Confidence.SUSPECTED);
+    Property runtimeVersion =
+        new Property("version", PropertyType.STRING, false, "4.34.2", Confidence.SUSPECTED);
+    Component containerRuntime =
+        new Component(
+            "default-container-runtime",
+            null,
+            List.of(runtimeName, runtimeVersion),
+            null,
+            containerRuntimeType,
+            null,
+            Confidence.SUSPECTED);
     tadm.getComponents().add(containerRuntime);
+  }
+
+  private void createHostedOnRelations(TechnologyAgnosticDeploymentModel tadm)
+      throws InvalidRelationException {
+    List<Relation> hostedOnRelations = new ArrayList<>();
+    Component host =
+        tadm.getComponents().stream()
+            .filter(cmp -> "default-container-runtime".equals(cmp.getName()))
+            .findFirst()
+            .orElseThrow();
+    RelationType hostedOnRelationType =
+        tadm.getRelationTypes().stream()
+            .filter(type -> "HostedOn".equals(type.getName()))
+            .findFirst()
+            .orElseThrow();
+
+    for (Component component : tadm.getComponents()) {
+      if (component.getType().getName().equals("docker_container")) {
+        hostedOnRelations.add(
+            new Relation(
+                component.getName() + "_hostedOn_" + host.getName(),
+                null,
+                List.of(),
+                List.of(),
+                hostedOnRelationType,
+                component,
+                host,
+                Confidence.CONFIRMED));
+      }
+    }
+    tadm.getRelations().addAll(hostedOnRelations);
   }
 }
