@@ -35,10 +35,29 @@ public class DockerPostProcessor {
   public TechnologyAgnosticDeploymentModel runPostProcessor(TechnologyAgnosticDeploymentModel tadm)
       throws PostProcessorFailedException, InvalidPropertyValueException, InvalidRelationException {
     trimDependsOn(tadm);
+    trimEnv(tadm);
     createContainerRuntime(tadm);
     createHostedOnRelations(tadm);
     createConnectsToRelations(tadm);
     return tadm;
+  }
+  /**
+   * Trims the key property as it might have issues from parsing.
+   *
+   * @param tadm the tadm to be modified
+   */
+  private void trimEnv(TechnologyAgnosticDeploymentModel tadm) throws InvalidPropertyValueException {
+    for (Component component : tadm.getComponents()) {
+      Optional<Property> env =
+              component.getProperties().stream()
+                      .filter(prop -> "env".equals(prop.getKey()))
+                      .findFirst();
+        if (env.isPresent()) {
+            String value = (String) env.get().getValue();
+            value = value.trim().replace("[, ","[").replace("]]", "]").replace("\"","").replace("\\", "").replace("\n", "");
+            env.get().setValue(value);
+        }
+    }
   }
 
   /**
