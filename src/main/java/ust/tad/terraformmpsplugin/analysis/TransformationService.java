@@ -7,10 +7,8 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.environment.EnvironmentUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -96,10 +94,8 @@ public class TransformationService {
     CommandLine mpsBuild =
         CommandLine.parse("./" + mpsLocation + "/gradlew -p " + mpsLocation + " mpsBuild");
     DefaultExecutor executor = new DefaultExecutor();
-    Map<String, String> environment = EnvironmentUtils.getProcEnvironment();
-    environment.put("JAVA_TOOL_OPTIONS", "");
-    executor.execute(prepareMps, environment);
-    executor.execute(mpsBuild, environment);
+    executor.execute(prepareMps);
+    executor.execute(mpsBuild);
   }
 
   /**

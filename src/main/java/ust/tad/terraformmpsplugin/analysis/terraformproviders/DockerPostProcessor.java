@@ -2,6 +2,7 @@ package ust.tad.terraformmpsplugin.analysis.terraformproviders;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import ust.tad.terraformmpsplugin.models.tadm.*;
 
@@ -33,13 +34,36 @@ public class DockerPostProcessor {
    */
   public TechnologyAgnosticDeploymentModel runPostProcessor(TechnologyAgnosticDeploymentModel tadm)
       throws PostProcessorFailedException, InvalidPropertyValueException, InvalidRelationException {
+    trimDependsOn(tadm);
     createContainerRuntime(tadm);
     createHostedOnRelations(tadm);
+    createConnectsToRelations(tadm);
     return tadm;
   }
 
   /**
-   * Creates and adds the containeruntime object and type to tadm
+   * Trims the depends_on property as it might have issues from parsing.
+   *
+   * @param tadm the tadm to be modified
+   */
+  private void trimDependsOn(TechnologyAgnosticDeploymentModel tadm)
+      throws InvalidPropertyValueException {
+    for (Component component : tadm.getComponents()) {
+      Optional<Property> dependsOn =
+          component.getProperties().stream()
+              .filter(prop -> "depends_on".equals(prop.getKey()))
+              .findFirst();
+      if (dependsOn.isPresent()) {
+        String value = (String) dependsOn.get().getValue();
+        value = value.trim().replace("]]", "]").replace("\\", "").replace("\n", "");
+        value = value.replace("docker_container.", ""); // Remove prefix
+        dependsOn.get().setValue(value);
+      }
+    }
+  }
+
+  /**
+   * Creates and adds the container runtime object and type to tadm
    *
    * @param tadm the tadm to be modified
    */
@@ -67,6 +91,11 @@ public class DockerPostProcessor {
     tadm.getComponents().add(containerRuntime);
   }
 
+  /**
+   * Creates hostedOn relations from each docker_container to the default-container-runtime.
+   *
+   * @param tadm the tadm to be modified
+   */
   private void createHostedOnRelations(TechnologyAgnosticDeploymentModel tadm)
       throws InvalidRelationException {
     List<Relation> hostedOnRelations = new ArrayList<>();
@@ -96,5 +125,63 @@ public class DockerPostProcessor {
       }
     }
     tadm.getRelations().addAll(hostedOnRelations);
+  }
+
+  /**
+   * Creates connectsTo relations from each docker_container component to each of the components he
+   * has marked as "depends_on"
+   *
+   * @param tadm the tadm to be modified
+   */
+  private void createConnectsToRelations(TechnologyAgnosticDeploymentModel tadm)
+      throws InvalidRelationException {
+    List<Relation> connectsToRelations = new ArrayList<>();
+
+    RelationType conntectsToRelationType =
+        tadm.getRelationTypes().stream()
+            .filter(type -> "ConnectsTo".equals(type.getName()))
+            .findFirst()
+            .orElseThrow();
+
+    for (Component component : tadm.getComponents()) {
+      if (component.getType().getName().equals("docker_container")) {
+        Optional<Property> dependsOn =
+            component.getProperties().stream()
+                .filter(prop -> "depends_on".equals(prop.getKey()))
+                .findFirst();
+        if (dependsOn.isPresent()) {
+          List<String> dependentComponents =
+              List.of(
+                  dependsOn
+                      .get()
+                      .getValue()
+                      .toString()
+                      .replace("[", "")
+                      .replace("]", "")
+                      .replace(" ", "")
+                      .split(","));
+          for (String dependentComponent : dependentComponents) {
+
+            Component target =
+                tadm.getComponents().stream()
+                    .filter(cmp -> dependentComponent.equals(cmp.getName()))
+                    .findFirst()
+                    .orElseThrow();
+
+            connectsToRelations.add(
+                new Relation(
+                    component.getName() + "_connectsTo_" + dependentComponent,
+                    null,
+                    List.of(),
+                    List.of(),
+                    conntectsToRelationType,
+                    component,
+                    target,
+                    Confidence.CONFIRMED));
+          }
+        }
+      }
+    }
+    tadm.getRelations().addAll(connectsToRelations);
   }
 }
