@@ -1,10 +1,13 @@
 package ust.tad.terraformmpsplugin.analysis;
 
+import static ust.tad.terraformmpsplugin.analysis.util.ComponentTypePostProcessor.mergeDuplicateComponentTypes;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.environment.EnvironmentUtils;
@@ -33,12 +36,10 @@ public class TransformationService {
 
   @Autowired private AzureRMPostProcessor azureRMPostProcessor;
 
-  @Autowired
-    private DockerPostProcessor dockerPostProcessor;
+  @Autowired private DockerPostProcessor dockerPostProcessor;
 
-    /**
-     * Transforms given the internal Terraform model to an EDMM model.
-      Uses the MPS project for a
+  /**
+   * Transforms given the internal Terraform model to an EDMM model. Uses the MPS project for a
    * model-to-model transformation. In the first step, creates a file containing the tsdm model in
    * the MPS Terraform language from the given internal Terraform model. Then, the MPS
    * transformation is run, using the Gradle build scripts. After that, the resulting EDMM model is
@@ -59,8 +60,9 @@ public class TransformationService {
     createMPSTerraformDeploymentModel(terraformDeploymentModel);
     runMPSTransformation();
     TechnologyAgnosticDeploymentModel transformationResult = importMPSResult();
-    TechnologyAgnosticDeploymentModel mergedResult = mergeDuplicateComponentTypes(transformationResult);
-        tadm.addFromOtherTADM(mergedResult);
+    TechnologyAgnosticDeploymentModel mergedResult =
+        mergeDuplicateComponentTypes(transformationResult);
+    tadm.addFromOtherTADM(mergedResult);
     if (runProviderPostProcessors) {
       tadm = postProcessTADM(tadm);
     }
@@ -95,9 +97,9 @@ public class TransformationService {
         CommandLine.parse("./" + mpsLocation + "/gradlew -p " + mpsLocation + " mpsBuild");
     DefaultExecutor executor = new DefaultExecutor();
     Map<String, String> environment = EnvironmentUtils.getProcEnvironment();
-        environment.put("JAVA_TOOL_OPTIONS", "");
-        executor.execute(prepareMps,environment);
-    executor.execute(mpsBuild,environment);
+    environment.put("JAVA_TOOL_OPTIONS", "");
+    executor.execute(prepareMps, environment);
+    executor.execute(mpsBuild, environment);
   }
 
   /**
@@ -140,13 +142,13 @@ public class TransformationService {
         return tadm;
       }
     }
-    if(dockerPostProcessor.isPostProcessorApplicable(tadm)){
-            try{
-                return dockerPostProcessor.runPostProcessor(tadm);
-            } catch (PostProcessorFailedException | InvalidPropertyValueException e) {
-                return tadm;
-            }
-        }
+    if (dockerPostProcessor.isPostProcessorApplicable(tadm)) {
+      try {
+        return dockerPostProcessor.runPostProcessor(tadm);
+      } catch (PostProcessorFailedException | InvalidPropertyValueException e) {
         return tadm;
+      }
     }
+    return tadm;
+  }
 }

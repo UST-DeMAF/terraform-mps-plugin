@@ -4,8 +4,6 @@ import java.util.*;
 import org.springframework.stereotype.Service;
 import ust.tad.terraformmpsplugin.models.tadm.*;
 
-import java.util.*;
-
 /**
  * Utility class for post-processing and merging duplicate ComponentTypes in the
  * TechnologyAgnosticDeploymentModel.
@@ -42,17 +40,18 @@ public class ComponentTypePostProcessor {
    * @param tadm the TechnologyAgnosticDeploymentModel
    * @return a map of Components and their corresponding ComponentTypes to be renamed
    */
-  private static Map<Component, ComponentType> findComponentsToRename(TechnologyAgnosticDeploymentModel tadm) {
-        Map<Component, ComponentType> toBeRenamed = new HashMap<>();
-        for (ComponentType componentType : tadm.getComponentTypes()) {
-            for (Component component : tadm.getComponents()) {
-                if (componentType.getName().endsWith(component.getName())) {
-                    toBeRenamed.put(component, componentType);
-                }
-            }
+  private static Map<Component, ComponentType> findComponentsToRename(
+      TechnologyAgnosticDeploymentModel tadm) {
+    Map<Component, ComponentType> toBeRenamed = new HashMap<>();
+    for (ComponentType componentType : tadm.getComponentTypes()) {
+      for (Component component : tadm.getComponents()) {
+        if (componentType.getName().endsWith(component.getName())) {
+          toBeRenamed.put(component, componentType);
         }
-        return toBeRenamed;
+      }
     }
+    return toBeRenamed;
+  }
 
   /**
    * Updates the model after renaming the ComponentTypes and their corresponding Components.
@@ -60,17 +59,18 @@ public class ComponentTypePostProcessor {
    * @param tadm the TechnologyAgnosticDeploymentModel
    * @param toBeRenamed the map of Components and their corresponding ComponentTypes to be renamed
    */
-  private static void updateModelAfterRenaming(TechnologyAgnosticDeploymentModel tadm,
-                                                 Map<Component, ComponentType> toBeRenamed) {
-        tadm.getComponents().removeAll(toBeRenamed.keySet());
-        tadm.getComponentTypes().removeAll(toBeRenamed.values());
+  private static void updateModelAfterRenaming(
+      TechnologyAgnosticDeploymentModel tadm, Map<Component, ComponentType> toBeRenamed) {
+    tadm.getComponents().removeAll(toBeRenamed.keySet());
+    tadm.getComponentTypes().removeAll(toBeRenamed.values());
 
-        toBeRenamed.forEach((component, componentType) -> {
-            String newName = componentType.getName().replace(component.getName(), "");
-            newName = newName.substring(0,newName.length() - 1); // Remove trailing "_"
-            componentType.setName(newName);
-            tadm.getComponentTypes().add(componentType);
-            tadm.getComponents().add(component);
+    toBeRenamed.forEach(
+        (component, componentType) -> {
+          String newName = componentType.getName().replace(component.getName(), "");
+          newName = newName.substring(0, newName.length() - 1); // Remove trailing "_"
+          componentType.setName(newName);
+          tadm.getComponentTypes().add(componentType);
+          tadm.getComponents().add(component);
         });
   }
 
@@ -83,12 +83,11 @@ public class ComponentTypePostProcessor {
     Map<String, ComponentType> mergedComponentTypes = new HashMap<>();
     List<ComponentType> toBeRemoved = new ArrayList<>();
 
-        for (ComponentType componentType : tadm.getComponentTypes()) {
-            mergedComponentTypes.merge(
-                    componentType.getName(), componentType, ComponentTypePostProcessor::mergeComponentTypes
-            );
-            toBeRemoved.add(componentType);
-        }
+    for (ComponentType componentType : tadm.getComponentTypes()) {
+      mergedComponentTypes.merge(
+          componentType.getName(), componentType, ComponentTypePostProcessor::mergeComponentTypes);
+      toBeRemoved.add(componentType);
+    }
 
     tadm.getComponentTypes().removeAll(toBeRemoved);
     tadm.getComponentTypes().addAll(mergedComponentTypes.values());
@@ -117,14 +116,13 @@ public class ComponentTypePostProcessor {
     addPropertiesAndOperations(type2, properties, operations);
     cleanPropertyValues(properties.values());
 
-        return new ComponentType(
-                type2.getName(),
-                type2.getDescription(),
-                new ArrayList<>(properties.values()),
-                new ArrayList<>(operations.values()),
-                type2.getParentType()
-        );
-    }
+    return new ComponentType(
+        type2.getName(),
+        type2.getDescription(),
+        new ArrayList<>(properties.values()),
+        new ArrayList<>(operations.values()),
+        type2.getParentType());
+  }
 
   /**
    * Adds properties and operations from a ComponentType to the respective maps.
@@ -133,16 +131,17 @@ public class ComponentTypePostProcessor {
    * @param properties the map of properties to be updated
    * @param operations the map of operations to be updated
    */
-  private static void addPropertiesAndOperations(ComponentType type, Map<String, Property> properties, Map<String, Operation> operations) {
-        if (type != null) {
-            for (Property property : type.getProperties()) {
-                properties.put(property.getKey(), property);
-            }
-            for (Operation operation : type.getOperations()) {
-                operations.put(operation.getName(), operation);
-            }
-        }
+  private static void addPropertiesAndOperations(
+      ComponentType type, Map<String, Property> properties, Map<String, Operation> operations) {
+    if (type != null) {
+      for (Property property : type.getProperties()) {
+        properties.put(property.getKey(), property);
+      }
+      for (Operation operation : type.getOperations()) {
+        operations.put(operation.getName(), operation);
+      }
     }
+  }
 
   /**
    * Cleans the values of the properties from a ComponentType, as they should be generic.
