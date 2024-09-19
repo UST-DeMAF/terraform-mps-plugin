@@ -3,6 +3,7 @@ package ust.tad.terraformmpsplugin.analysis.terraformproviders;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import ust.tad.terraformmpsplugin.models.tadm.*;
 
@@ -34,38 +35,65 @@ public class DockerPostProcessor {
    */
   public TechnologyAgnosticDeploymentModel runPostProcessor(TechnologyAgnosticDeploymentModel tadm)
       throws PostProcessorFailedException, InvalidPropertyValueException, InvalidRelationException {
-    trimDependsOn(tadm);
-    trimEnv(tadm);
+    trimArrayStrings(tadm);
+    trimAndFlattenEnv(tadm);
     createContainerRuntime(tadm);
     createHostedOnRelations(tadm);
     createConnectsToRelations(tadm);
     return tadm;
   }
+
   /**
-   * Trims the key property as it might have issues from parsing.
+   * Trims the key property as it might have issues from parsing and flattens them into own properties.
    *
    * @param tadm the tadm to be modified
    */
-  private void trimEnv(TechnologyAgnosticDeploymentModel tadm) throws InvalidPropertyValueException {
+  private void trimAndFlattenEnv(TechnologyAgnosticDeploymentModel tadm)
+      throws InvalidPropertyValueException {
     for (Component component : tadm.getComponents()) {
       Optional<Property> env =
-              component.getProperties().stream()
-                      .filter(prop -> "env".equals(prop.getKey()))
-                      .findFirst();
-        if (env.isPresent()) {
-            String value = (String) env.get().getValue();
-            value = value.trim().replace("[, ","[").replace("]]", "]").replace("\"","").replace("\\", "").replace("\n", "");
-            env.get().setValue(value);
+          component.getProperties().stream()
+              .filter(prop -> "env".equals(prop.getKey()))
+              .findFirst();
+      if (env.isPresent()) {
+        String value = (String) env.get().getValue();
+        List<String> envValues =
+            List.of(
+                value
+                    .trim()
+                    .replace("[, ", "[")
+                    .replace("[", "")
+                    .replace("]", "")
+                    .replace("\"", "")
+                    .replace("\\", "")
+                    .replace("\n", "")
+                    .split(","));
+
+        component.getProperties().remove(env.get());
+        for (String envValue : envValues) {
+          String[] envParts = envValue.split("=");
+          if (envParts.length == 2) {
+            component
+                .getProperties()
+                .add(
+                    new Property(
+                        envParts[0].trim(),
+                        PropertyType.STRING,
+                        false,
+                        envParts[1].trim(),
+                        Confidence.CONFIRMED));
+          }
         }
+      }
     }
   }
 
   /**
-   * Trims the depends_on property as it might have issues from parsing.
+   * Trims the array string properties as they might have issues from parsing.
    *
    * @param tadm the tadm to be modified
    */
-  private void trimDependsOn(TechnologyAgnosticDeploymentModel tadm)
+  private void trimArrayStrings(TechnologyAgnosticDeploymentModel tadm)
       throws InvalidPropertyValueException {
     for (Component component : tadm.getComponents()) {
       Optional<Property> dependsOn =
@@ -77,6 +105,27 @@ public class DockerPostProcessor {
         value = value.trim().replace("]]", "]").replace("\\", "").replace("\n", "");
         value = value.replace("docker_container.", ""); // Remove prefix
         dependsOn.get().setValue(value);
+      }
+
+      // Commands are collapsed to single line and then re-formated in the output
+      List<Property> arrayStrings =
+          component.getProperties().stream()
+              .filter(
+                  prop ->
+                      "healthcheck.test".equals(prop.getKey()) || "command".equals(prop.getKey()))
+              .collect(Collectors.toCollection(ArrayList::new));
+      for (Property arrayString : arrayStrings) {
+        String value = (String) arrayString.getValue();
+        value =
+            value
+                .replace("]", "")
+                .replace("[", "")
+                .replace("\\", "")
+                .replace("\n", "")
+                .replace("\"", "")
+                .replace(",", "")
+                .trim();
+        arrayString.setValue(value);
       }
     }
   }
