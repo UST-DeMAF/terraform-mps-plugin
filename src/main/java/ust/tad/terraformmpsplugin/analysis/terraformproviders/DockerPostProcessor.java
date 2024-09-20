@@ -36,7 +36,7 @@ public class DockerPostProcessor {
   public TechnologyAgnosticDeploymentModel runPostProcessor(TechnologyAgnosticDeploymentModel tadm)
       throws PostProcessorFailedException, InvalidPropertyValueException, InvalidRelationException {
     trimArrayStrings(tadm);
-    trimAndFlattenEnv(tadm);
+    trimEnv(tadm);
     createContainerRuntime(tadm);
     createHostedOnRelations(tadm);
     createConnectsToRelations(tadm);
@@ -44,7 +44,35 @@ public class DockerPostProcessor {
   }
 
   /**
-   * Trims the key property as it might have issues from parsing and flattens them into own properties.
+   * Trims the key property as it might have issues from parsing.
+   *
+   * @param tadm the tadm to be modified
+   */
+  private void trimEnv(TechnologyAgnosticDeploymentModel tadm)
+      throws InvalidPropertyValueException {
+    for (Component component : tadm.getComponents()) {
+      Optional<Property> env =
+          component.getProperties().stream()
+              .filter(prop -> "env".equals(prop.getKey()))
+              .findFirst();
+      if (env.isPresent()) {
+        String value = (String) env.get().getValue();
+        value =
+            value
+                .trim()
+                .replace("[, ", "[")
+                .replace("]]", "]")
+                .replace("\"", "")
+                .replace("\\", "")
+                .replace("\n", "");
+        env.get().setValue(value);
+      }
+    }
+  }
+
+  /**
+   * Trims the key property as it might have issues from parsing and flattens them into own
+   * properties. Currently, not in use, but technically also possible.
    *
    * @param tadm the tadm to be modified
    */
@@ -137,8 +165,8 @@ public class DockerPostProcessor {
    */
   private void createContainerRuntime(TechnologyAgnosticDeploymentModel tadm)
       throws InvalidPropertyValueException {
-    Property name = new Property("name", PropertyType.STRING, false, null, Confidence.SUSPECTED);
-    Property version = new Property("version", PropertyType.STRING, false, null, null);
+    Property name = new Property("name", PropertyType.STRING, false, "", Confidence.SUSPECTED);
+    Property version = new Property("version", PropertyType.STRING, false, "", null);
     ComponentType containerRuntimeType =
         new ComponentType("container_runtime", null, List.of(name, version), null, null);
     tadm.getComponentTypes().add(containerRuntimeType);
