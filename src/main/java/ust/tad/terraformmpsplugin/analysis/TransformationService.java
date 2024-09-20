@@ -1,5 +1,7 @@
 package ust.tad.terraformmpsplugin.analysis;
 
+import static ust.tad.terraformmpsplugin.analysis.util.ComponentTypePostProcessor.mergeDuplicateComponentTypes;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -11,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ust.tad.terraformmpsplugin.analysis.terraformproviders.AzureRMPostProcessor;
+import ust.tad.terraformmpsplugin.analysis.terraformproviders.DockerPostProcessor;
 import ust.tad.terraformmpsplugin.analysis.terraformproviders.PostProcessorFailedException;
 import ust.tad.terraformmpsplugin.models.tadm.*;
 import ust.tad.terraformmpsplugin.terraformmodel.TerraformDeploymentModel;
@@ -30,6 +33,8 @@ public class TransformationService {
   private boolean runProviderPostProcessors;
 
   @Autowired private AzureRMPostProcessor azureRMPostProcessor;
+
+  @Autowired private DockerPostProcessor dockerPostProcessor;
 
   /**
    * Transforms given the internal Terraform model to an EDMM model. Uses the MPS project for a
@@ -53,7 +58,9 @@ public class TransformationService {
     createMPSTerraformDeploymentModel(terraformDeploymentModel);
     runMPSTransformation();
     TechnologyAgnosticDeploymentModel transformationResult = importMPSResult();
-    tadm.addFromOtherTADM(transformationResult);
+    TechnologyAgnosticDeploymentModel mergedResult =
+        mergeDuplicateComponentTypes(transformationResult);
+    tadm.addFromOtherTADM(mergedResult);
     if (runProviderPostProcessors) {
       tadm = postProcessTADM(tadm);
     }
@@ -128,6 +135,15 @@ public class TransformationService {
       try {
         return azureRMPostProcessor.runPostProcessor(tadm);
       } catch (PostProcessorFailedException e) {
+        return tadm;
+      }
+    }
+    if (dockerPostProcessor.isPostProcessorApplicable(tadm)) {
+      try {
+        return dockerPostProcessor.runPostProcessor(tadm);
+      } catch (PostProcessorFailedException
+          | InvalidPropertyValueException
+          | InvalidRelationException e) {
         return tadm;
       }
     }
