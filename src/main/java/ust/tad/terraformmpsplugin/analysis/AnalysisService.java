@@ -84,6 +84,8 @@ public class AnalysisService {
             this.tsdm.getEmbeddedDeploymentModels().get(index), taskId);
       }
     }
+
+    clearVariables();
     analysisTaskResponseSender.sendSuccessResponse(taskId);
   }
 
@@ -366,5 +368,14 @@ public class AnalysisService {
       lines.add(new Line(lineNumber, comprehensibility, true));
     }
     return arguments;
+  }
+
+  /**
+   * Clears the variables and resources set to avoid side effects between different transformation
+   * processes.
+   */
+  private void clearVariables() {
+    resources.clear();
+    variables.clear();
   }
 }
