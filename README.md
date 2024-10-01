@@ -18,7 +18,7 @@ If you want to boot it locally nevertheless use the following commands.
 or to use the built package:
 ```shell
 ./mvnw package
-java -jar target/terraform-plugin-0.0.1-SNAPSHOT.jar
+java -jar target/terraform-plugin-0.2.0-SNAPSHOT.jar
 ```
 
 ## Init and Update Submodule

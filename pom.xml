@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>ust.tad</groupId>
 	<artifactId>terraform-mps-plugin</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.2.0-SNAPSHOT</version>
 	<name>terraform-mps-plugin</name>
 	<description>terraform plugin using JetBrains MPS for technology-agnostic deployments</description>
 	<properties>
