@@ -1,13 +1,10 @@
 package ust.tad.terraformmpsplugin;
 
-import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class TerraformMPSPluginApplicationTests {
-
-	@Test
-	void contextLoads() {
-	}
-
+class AnsibleMPSPluginApplicationTests {
+  /**
+   * @Test void contextLoads() { }
+   */
 }
