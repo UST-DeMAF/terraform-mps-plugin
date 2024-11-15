@@ -10,11 +10,14 @@ public class TerraformDeploymentModel {
 
   private Set<Variable> variables = new HashSet<>();
 
+  private Set<Provider> providers = new HashSet<>();
+
   public TerraformDeploymentModel() {}
 
-  public TerraformDeploymentModel(Set<Resource> resources, Set<Variable> variables) {
+  public TerraformDeploymentModel(Set<Resource> resources, Set<Variable> variables, Set<Provider> providers) {
     this.resources = resources;
     this.variables = variables;
+    this.providers = providers;
   }
 
   public Set<Resource> getResources() {
@@ -33,17 +36,25 @@ public class TerraformDeploymentModel {
     this.variables = variables;
   }
 
+  public Set<Provider> getProviders() {
+    return providers;
+  }
+
+  public void setProviders(Set<Provider> providers) {
+    this.providers = providers;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     TerraformDeploymentModel that = (TerraformDeploymentModel) o;
-    return Objects.equals(resources, that.resources) && Objects.equals(variables, that.variables);
+    return Objects.equals(resources, that.resources) && Objects.equals(variables, that.variables) && Objects.equals(providers, that.providers);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(resources, variables);
+    return Objects.hash(resources, variables, providers);
   }
 
   @Override
@@ -53,6 +64,8 @@ public class TerraformDeploymentModel {
         + resources
         + ", variables="
         + variables
+        + ", providers="
+        + providers
         + '}';
   }
 }

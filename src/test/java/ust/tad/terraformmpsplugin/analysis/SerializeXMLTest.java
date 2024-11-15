@@ -52,6 +52,8 @@ public class SerializeXMLTest {
 
     Variable variable = new Variable("var.key", "variableValue");
 
-    return new TerraformDeploymentModel(Set.of(resource, resource2), Set.of(variable));
+    Provider provider = new Provider("dummyProvider");
+
+    return new TerraformDeploymentModel(Set.of(resource, resource2), Set.of(variable), Set.of(provider));
   }
 }

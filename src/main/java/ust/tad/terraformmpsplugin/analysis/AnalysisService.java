@@ -32,8 +32,8 @@ public class AnalysisService {
   private TechnologyAgnosticDeploymentModel tadm;
   private Set<Integer> newEmbeddedDeploymentModelIndexes = new HashSet<>();
   private Set<Variable> variables = new HashSet<>();
-
   private Set<Resource> resources = new HashSet<>();
+  private Set<Provider> providers = new HashSet<>();
 
   /**
    * Start the analysis of the deployment model. 1. Retrieve internal deployment models from models
@@ -163,7 +163,7 @@ public class AnalysisService {
     }
     this.tadm =
         transformationService.transformInternalToTADM(
-            this.tadm, new TerraformDeploymentModel(resources, variables));
+            this.tadm, new TerraformDeploymentModel(resources, variables, providers));
   }
 
   /**
@@ -245,8 +245,6 @@ public class AnalysisService {
       } else if (nextline.startsWith("variable")) {
         String identifier = nextline.split(" ")[1].replaceAll("(^\")|(\"$)", "");
         lines.add(new Line(lineNumber, 1D, true));
-
-        String expression = "";
         lineNumber++;
         nextline = reader.readLine();
         while (!nextline.startsWith("}")) {
@@ -259,6 +257,20 @@ public class AnalysisService {
             for (Argument argument : arguments) {
               this.variables.add(new Variable(argument.getIdentifier(), argument.getExpression()));
             }
+          } else {
+            lines.add(new Line(lineNumber, 0D, true));
+          }
+          lineNumber++;
+          nextline = reader.readLine();
+        }
+      } else if (nextline.startsWith("terraform")) {
+        lines.add(new Line(lineNumber, 1D, true));
+          lineNumber++;
+        nextline = reader.readLine();
+        while (!nextline.startsWith("}")) {
+          if (nextline.trim().split(" ")[0].equals("source")) {
+            this.providers.add(new Provider(nextline.split("=")[1].trim().replaceAll("(^\")|(\"$)", "")));
+            lines.add(new Line(lineNumber, 1D, true));
           } else {
             lines.add(new Line(lineNumber, 0D, true));
           }
