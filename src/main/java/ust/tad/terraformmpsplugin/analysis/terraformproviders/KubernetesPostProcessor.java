@@ -1,19 +1,21 @@
 package ust.tad.terraformmpsplugin.analysis.terraformproviders;
 
+import org.springframework.stereotype.Service;
+import ust.tad.terraformmpsplugin.models.tadm.Component;
+import ust.tad.terraformmpsplugin.models.tadm.ComponentType;
+import ust.tad.terraformmpsplugin.models.tadm.TechnologyAgnosticDeploymentModel;
+
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.springframework.stereotype.Service;
-import ust.tad.terraformmpsplugin.models.tadm.*;
-
 @Service
-public class AzureRMPostProcessor {
+public class KubernetesPostProcessor {
 
-  private final String PROVIDERNAME = "azurerm";
+  private final String PROVIDERNAME = "kubernetes";
 
-  private final Set<String> RESOURCESTOREMOVE = Set.of("azurerm_resource_group");
+  private final Set<String> RESOURCESTOREMOVE = Set.of("kubernetes_namespace");
 
   /**
    * Tests if this Post-Processor is applicable for the given technology-agnostic deployment model.
@@ -45,9 +47,10 @@ public class AzureRMPostProcessor {
 
   /**
    * Remove specific ComponentTypes from a given technology-agnostic deployment model.
-   * The ComponentTypes are filtered based on specific resources of the Terraform AzureRM provider.
-   * For example, the "azurerm_resource_group" is removed, because it is not an actual software
-   * component but a logical construct of Azure to cluster resources.
+   * The ComponentTypes are filtered based on specific resources of the Terraform Kubernetes
+   * provider.
+   * For example, the "kubernetes_namespace" is removed, because it is not an actual software
+   * component but a logical construct of Kubernetes.
    *
    * @param tadm the technology-agnostic deployment model from which to remove the ComponentTypes.
    */

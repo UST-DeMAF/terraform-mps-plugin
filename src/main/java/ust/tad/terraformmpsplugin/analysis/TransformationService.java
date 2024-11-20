@@ -7,6 +7,8 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Logger;
+
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ust.tad.terraformmpsplugin.analysis.terraformproviders.AzureRMPostProcessor;
 import ust.tad.terraformmpsplugin.analysis.terraformproviders.DockerPostProcessor;
+import ust.tad.terraformmpsplugin.analysis.terraformproviders.KubernetesPostProcessor;
 import ust.tad.terraformmpsplugin.analysis.terraformproviders.PostProcessorFailedException;
 import ust.tad.terraformmpsplugin.models.tadm.*;
 import ust.tad.terraformmpsplugin.terraformmodel.TerraformDeploymentModel;
@@ -34,7 +37,11 @@ public class TransformationService {
 
   @Autowired private AzureRMPostProcessor azureRMPostProcessor;
 
+  @Autowired private KubernetesPostProcessor kubernetesPostProcessor;
+
   @Autowired private DockerPostProcessor dockerPostProcessor;
+
+  private final Logger logger = Logger.getLogger(this.getClass().getName());
 
   /**
    * Transforms given the internal Terraform model to an EDMM model. Uses the MPS project for a
@@ -133,18 +140,28 @@ public class TransformationService {
       TechnologyAgnosticDeploymentModel tadm) {
     if (azureRMPostProcessor.isPostProcessorApplicable(tadm)) {
       try {
-        return azureRMPostProcessor.runPostProcessor(tadm);
+        tadm = azureRMPostProcessor.runPostProcessor(tadm);
       } catch (PostProcessorFailedException e) {
-        return tadm;
+        logger.warning("Post Processor for provider AzureRM failed with message: " +
+                e.getMessage());
+      }
+    }
+    if (kubernetesPostProcessor.isPostProcessorApplicable(tadm)) {
+      try {
+        tadm = kubernetesPostProcessor.runPostProcessor(tadm);
+      } catch (PostProcessorFailedException e) {
+        logger.warning("Post Processor for provider Kubernetes failed with message: " +
+                e.getMessage());
       }
     }
     if (dockerPostProcessor.isPostProcessorApplicable(tadm)) {
       try {
-        return dockerPostProcessor.runPostProcessor(tadm);
+        tadm = dockerPostProcessor.runPostProcessor(tadm);
       } catch (PostProcessorFailedException
           | InvalidPropertyValueException
           | InvalidRelationException e) {
-        return tadm;
+        logger.warning("Post Processor for provider Docker failed with message: " +
+                e.getMessage());
       }
     }
     return tadm;
