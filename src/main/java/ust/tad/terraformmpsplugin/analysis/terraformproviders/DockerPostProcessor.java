@@ -233,7 +233,7 @@ public class DockerPostProcessor {
       throws InvalidRelationException {
     List<Relation> connectsToRelations = new ArrayList<>();
 
-    RelationType conntectsToRelationType =
+    RelationType connectsToRelationType =
         tadm.getRelationTypes().stream()
             .filter(type -> "ConnectsTo".equals(type.getName()))
             .findFirst()
@@ -270,7 +270,7 @@ public class DockerPostProcessor {
                     null,
                     List.of(),
                     List.of(),
-                    conntectsToRelationType,
+                    connectsToRelationType,
                     component,
                     target,
                     Confidence.CONFIRMED));

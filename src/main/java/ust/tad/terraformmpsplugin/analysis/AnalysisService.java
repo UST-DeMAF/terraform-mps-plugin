@@ -63,7 +63,7 @@ public class AnalysisService {
     this.tadm = modelsService.getTechnologyAgnosticDeploymentModel(transformationProcessId);
 
     try {
-      runAnalysis(locations);
+      runAnalysis(taskId, locations);
     } catch (InvalidNumberOfContentException
         | URISyntaxException
         | IOException
@@ -131,7 +131,7 @@ public class AnalysisService {
    * @throws InvalidRelationException
    * @throws MalformedURLException
    */
-  private void runAnalysis(List<Location> locations)
+  private void runAnalysis(UUID taskId, List<Location> locations)
       throws InvalidNumberOfContentException,
           URISyntaxException,
           IOException,
@@ -162,7 +162,7 @@ public class AnalysisService {
       }
     }
     this.tadm =
-        transformationService.transformInternalToTADM(
+        transformationService.transformInternalToTADM(taskId,
             this.tadm, new TerraformDeploymentModel(resources, variables, providers));
   }
 

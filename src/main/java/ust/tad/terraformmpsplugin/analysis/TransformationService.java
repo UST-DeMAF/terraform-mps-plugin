@@ -7,6 +7,10 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.apache.commons.exec.CommandLine;
@@ -18,6 +22,7 @@ import ust.tad.terraformmpsplugin.analysis.terraformproviders.AzureRMPostProcess
 import ust.tad.terraformmpsplugin.analysis.terraformproviders.DockerPostProcessor;
 import ust.tad.terraformmpsplugin.analysis.terraformproviders.KubernetesPostProcessor;
 import ust.tad.terraformmpsplugin.analysis.terraformproviders.PostProcessorFailedException;
+import ust.tad.terraformmpsplugin.analysistask.AnalysisTaskResponseSender;
 import ust.tad.terraformmpsplugin.models.tadm.*;
 import ust.tad.terraformmpsplugin.terraformmodel.TerraformDeploymentModel;
 
@@ -41,6 +46,8 @@ public class TransformationService {
 
   @Autowired private DockerPostProcessor dockerPostProcessor;
 
+  @Autowired private AnalysisTaskResponseSender analysisTaskResponseSender;
+
   private final Logger logger = Logger.getLogger(this.getClass().getName());
 
   /**
@@ -59,6 +66,7 @@ public class TransformationService {
    *     transformation result fails.
    */
   public TechnologyAgnosticDeploymentModel transformInternalToTADM(
+      final UUID taskId,
       TechnologyAgnosticDeploymentModel tadm,
       final TerraformDeploymentModel terraformDeploymentModel)
       throws IOException {
@@ -71,6 +79,7 @@ public class TransformationService {
     if (runProviderPostProcessors) {
       tadm = postProcessTADM(tadm);
     }
+    sendDockerImageAnalysisTask(taskId, transformationResult, tadm);
     return tadm;
   }
 
@@ -165,5 +174,29 @@ public class TransformationService {
       }
     }
     return tadm;
+  }
+
+  /**
+   * Create an analysis task for analyzing Docker images if present in the transformation result.
+   *
+   * @param taskId the ID of the current analysis task.
+   * @param transformationResult the TADM containing only the result of the transformation.
+   * @param tadm the complete TADM of the current transformation process.
+   */
+  private void sendDockerImageAnalysisTask(UUID taskId,
+                                           TechnologyAgnosticDeploymentModel transformationResult,
+                                           TechnologyAgnosticDeploymentModel tadm) {
+    List<String> componentsToAnalyze = new ArrayList<>();
+    for (Component component : transformationResult.getComponents()) {
+      if (tadm.getComponents().contains(component) && component.getArtifacts().stream().anyMatch(
+              artifact -> artifact.getType().equals("docker_image"))) {
+        componentsToAnalyze.add(component.getId());
+      }
+    }
+    if (!componentsToAnalyze.isEmpty()) {
+      analysisTaskResponseSender.sendEmbeddedDeploymentModelAnalysisRequestFromTADMEntities(
+              Map.of("Component", componentsToAnalyze), taskId, tadm.getTransformationProcessId()
+              , "docker");
+    }
   }
 }
