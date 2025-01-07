@@ -37,7 +37,7 @@ public class DockerPostProcessor {
       throws PostProcessorFailedException, InvalidPropertyValueException, InvalidRelationException {
     trimArrayStrings(tadm);
     trimEnv(tadm);
-    createContainerRuntime(tadm);
+    createDockerEngineComponentAndType(tadm);
     createHostedOnRelations(tadm);
     createConnectsToRelations(tadm);
     return tadm;
@@ -159,36 +159,33 @@ public class DockerPostProcessor {
   }
 
   /**
-   * Creates and adds the container runtime object and type to tadm
+   * Creates and adds the docker engine component and type to tadm
    *
    * @param tadm the tadm to be modified
    */
-  private void createContainerRuntime(TechnologyAgnosticDeploymentModel tadm)
-      throws InvalidPropertyValueException {
-    Property name = new Property("name", PropertyType.STRING, false, "", Confidence.SUSPECTED);
-    Property version = new Property("version", PropertyType.STRING, false, "", null);
-    ComponentType containerRuntimeType =
-        new ComponentType("container_runtime", null, List.of(name, version), null, null);
-    tadm.getComponentTypes().add(containerRuntimeType);
+  private void createDockerEngineComponentAndType(TechnologyAgnosticDeploymentModel tadm) {
+    ComponentType dockerEngineType = new ComponentType();
+    dockerEngineType.setName("DockerEngine");
+    dockerEngineType.setParentType(tadm.getComponentTypes().stream()
+            .filter(cmpType -> "BaseType".equals(cmpType.getName()))
+            .findFirst()
+            .orElseThrow());
+    tadm.getComponentTypes().add(dockerEngineType);
 
-    Property runtimeName =
-        new Property("name", PropertyType.STRING, false, "Docker Desktop", Confidence.SUSPECTED);
-    Property runtimeVersion =
-        new Property("version", PropertyType.STRING, false, "4.34.2", Confidence.SUSPECTED);
-    Component containerRuntime =
+    Component dockerEngine =
         new Component(
-            "default-container-runtime",
+            "default-docker-engine",
             null,
-            List.of(runtimeName, runtimeVersion),
             null,
-            containerRuntimeType,
+            null,
+            dockerEngineType,
             null,
             Confidence.SUSPECTED);
-    tadm.getComponents().add(containerRuntime);
+    tadm.getComponents().add(dockerEngine);
   }
 
   /**
-   * Creates hostedOn relations from each docker_container to the default-container-runtime.
+   * Creates hostedOn relations from each docker_container to the default-docker-engine.
    *
    * @param tadm the tadm to be modified
    */
@@ -197,7 +194,7 @@ public class DockerPostProcessor {
     List<Relation> hostedOnRelations = new ArrayList<>();
     Component host =
         tadm.getComponents().stream()
-            .filter(cmp -> "default-container-runtime".equals(cmp.getName()))
+            .filter(cmp -> "default-docker-engine".equals(cmp.getName()))
             .findFirst()
             .orElseThrow();
     RelationType hostedOnRelationType =
