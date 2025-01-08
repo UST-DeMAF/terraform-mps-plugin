@@ -79,7 +79,6 @@ public class KubernetesPostProcessor {
                     !(componentsToRemove.contains(relation.getSource())
                             || componentsToRemove.contains(relation.getTarget())))
             .collect(Collectors.toList()));
-
     tadm.setComponents(tadm.getComponents().stream().filter(
             Predicate.not(componentsToRemove::contains)).collect(Collectors.toList()));
   }

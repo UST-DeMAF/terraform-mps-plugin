@@ -3,6 +3,8 @@ package ust.tad.terraformmpsplugin.analysis.terraformproviders;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import ust.tad.terraformmpsplugin.models.tadm.*;
@@ -10,6 +12,8 @@ import ust.tad.terraformmpsplugin.models.tadm.*;
 @Service
 public class DockerPostProcessor {
   private final String PROVIDERNAME = "docker_container";
+
+  private final Set<String> RESOURCESTOREMOVE = Set.of("docker_network");
 
   /**
    * Tests if this Post-Processor is applicable for the given technology-agnostic deployment model.
@@ -35,12 +39,49 @@ public class DockerPostProcessor {
    */
   public TechnologyAgnosticDeploymentModel runPostProcessor(TechnologyAgnosticDeploymentModel tadm)
       throws PostProcessorFailedException, InvalidPropertyValueException, InvalidRelationException {
+    removeComponentTypes(tadm);
     trimArrayStrings(tadm);
     trimAndFlattenEnv(tadm);
     createDockerEngineComponentAndType(tadm);
     createHostedOnRelations(tadm);
     createConnectsToRelations(tadm);
     return tadm;
+  }
+
+  /**
+   * Remove specific ComponentTypes from a given technology-agnostic deployment model.
+   * The ComponentTypes are filtered based on specific resources of the Terraform Docker
+   * provider.
+   *
+   * @param tadm the technology-agnostic deployment model from which to remove the ComponentTypes.
+   */
+  private void removeComponentTypes(TechnologyAgnosticDeploymentModel tadm) {
+    for (ComponentType componentType: tadm.getComponentTypes()) {
+      if (RESOURCESTOREMOVE.contains(componentType.getName())) {
+        removeComponentsAndRelationsOfComponentType(tadm, componentType);
+        tadm.setComponentTypes(tadm.getComponentTypes().stream().filter(componentType1 ->
+                !componentType1.equals(componentType)).collect(Collectors.toList()));
+      }
+    }
+  }
+
+  /**
+   * Remove the Components of a given ComponentType and the associated Relations of these Components.
+   *
+   * @param tadm the technology-agnostic deployment model from which to remove the Components and
+   *             Relations.
+   * @param componentType the ComponentType for which the Components should be removed.
+   */
+  private void removeComponentsAndRelationsOfComponentType(TechnologyAgnosticDeploymentModel tadm,
+                                                           ComponentType componentType) {
+    List<Component> componentsToRemove = tadm.getComponents().stream().filter(component ->
+            component.getType().equals(componentType)).collect(Collectors.toList());
+    tadm.setRelations(tadm.getRelations().stream().filter(relation ->
+                    !(componentsToRemove.contains(relation.getSource())
+                            || componentsToRemove.contains(relation.getTarget())))
+            .collect(Collectors.toList()));
+    tadm.setComponents(tadm.getComponents().stream().filter(
+            Predicate.not(componentsToRemove::contains)).collect(Collectors.toList()));
   }
 
   /**
