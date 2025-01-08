@@ -36,7 +36,7 @@ public class DockerPostProcessor {
   public TechnologyAgnosticDeploymentModel runPostProcessor(TechnologyAgnosticDeploymentModel tadm)
       throws PostProcessorFailedException, InvalidPropertyValueException, InvalidRelationException {
     trimArrayStrings(tadm);
-    trimEnv(tadm);
+    trimAndFlattenEnv(tadm);
     createDockerEngineComponentAndType(tadm);
     createHostedOnRelations(tadm);
     createConnectsToRelations(tadm);
@@ -44,7 +44,7 @@ public class DockerPostProcessor {
   }
 
   /**
-   * Trims the key property as it might have issues from parsing.
+   * Trims the env property as it might have issues from parsing.
    *
    * @param tadm the tadm to be modified
    */
@@ -71,8 +71,8 @@ public class DockerPostProcessor {
   }
 
   /**
-   * Trims the key property as it might have issues from parsing and flattens them into own
-   * properties. Currently, not in use, but technically also possible.
+   * Trims the env property as it might have issues from parsing and flattens them into own
+   * properties.
    *
    * @param tadm the tadm to be modified
    */
@@ -89,14 +89,11 @@ public class DockerPostProcessor {
             List.of(
                 value
                     .trim()
-                    .replace("[, ", "[")
-                    .replace("[", "")
-                    .replace("]", "")
+                    .replaceAll("^\\s*\\[\\s*,?|,?\\s*]\\s*$", "")
                     .replace("\"", "")
                     .replace("\\", "")
                     .replace("\n", "")
-                    .split(","));
-
+                    .split("\\s*,\\s*"));
         component.getProperties().remove(env.get());
         for (String envValue : envValues) {
           String[] envParts = envValue.split("=");

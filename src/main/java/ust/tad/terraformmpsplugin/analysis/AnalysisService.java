@@ -336,7 +336,9 @@ public class AnalysisService {
       arguments.add(
           new Argument(
               argumentIdentifier,
-              listElements.toString().replaceFirst("\\[\\[", "[").replaceFirst(", ,*]]", "]")));
+              listElements.toString().replaceFirst("^\\[\\[,?\\s*", "[")
+                      .replaceFirst("]]$", "]")
+                      .replaceAll("\"", "")));
       // map Key/value pairs can be separated by either a comma or a line break.
       // The values in a map can be arbitrary expressions.
     } else if (argumentExpression.startsWith("{")) {

@@ -124,7 +124,7 @@ public class TransformationService {
    * @return the transformation result.
    * @throws IOException if the deserialization fails.
    */
-  private TechnologyAgnosticDeploymentModel importMPSResult() throws IOException {
+  public TechnologyAgnosticDeploymentModel importMPSResult() throws IOException {
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     mapper.findAndRegisterModules();
     mapper.addMixIn(Component.class, ComponentMixIn.class);
