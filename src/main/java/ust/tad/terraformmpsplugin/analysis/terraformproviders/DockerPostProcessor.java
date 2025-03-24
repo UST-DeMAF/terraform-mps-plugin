@@ -245,7 +245,7 @@ public class DockerPostProcessor {
       if (component.getType().getName().equals("docker_container")) {
         hostedOnRelations.add(
             new Relation(
-                component.getName() + "_hostedOn_" + host.getName(),
+                component.getName() + "_HostedOn_" + host.getName(),
                 null,
                 List.of(),
                 List.of(),
@@ -301,7 +301,7 @@ public class DockerPostProcessor {
 
             connectsToRelations.add(
                 new Relation(
-                    component.getName() + "_connectsTo_" + dependentComponent,
+                    component.getName() + "_ConnectsTo_" + dependentComponent,
                     null,
                     List.of(),
                     List.of(),

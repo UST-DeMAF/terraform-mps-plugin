@@ -18,10 +18,7 @@ import org.apache.commons.exec.DefaultExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import ust.tad.terraformmpsplugin.analysis.terraformproviders.AzureRMPostProcessor;
-import ust.tad.terraformmpsplugin.analysis.terraformproviders.DockerPostProcessor;
-import ust.tad.terraformmpsplugin.analysis.terraformproviders.KubernetesPostProcessor;
-import ust.tad.terraformmpsplugin.analysis.terraformproviders.PostProcessorFailedException;
+import ust.tad.terraformmpsplugin.analysis.terraformproviders.*;
 import ust.tad.terraformmpsplugin.analysistask.AnalysisTaskResponseSender;
 import ust.tad.terraformmpsplugin.models.tadm.*;
 import ust.tad.terraformmpsplugin.terraformmodel.TerraformDeploymentModel;
@@ -41,6 +38,8 @@ public class TransformationService {
   private boolean runProviderPostProcessors;
 
   @Autowired private AzureRMPostProcessor azureRMPostProcessor;
+
+  @Autowired private GooglePostProcessor googlePostProcessor;
 
   @Autowired private KubernetesPostProcessor kubernetesPostProcessor;
 
@@ -152,6 +151,14 @@ public class TransformationService {
         tadm = azureRMPostProcessor.runPostProcessor(tadm);
       } catch (PostProcessorFailedException e) {
         logger.warning("Post Processor for provider AzureRM failed with message: " +
+                e.getMessage());
+      }
+    }
+    if (googlePostProcessor.isPostProcessorApplicable(tadm)) {
+      try {
+        tadm = googlePostProcessor.runPostProcessor(tadm);
+      } catch (PostProcessorFailedException e) {
+        logger.warning("Post Processor for provider Google failed with message: " +
                 e.getMessage());
       }
     }
