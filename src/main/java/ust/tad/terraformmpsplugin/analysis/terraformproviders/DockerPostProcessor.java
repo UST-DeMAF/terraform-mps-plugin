@@ -134,10 +134,10 @@ public class DockerPostProcessor {
                     .replace("\"", "")
                     .replace("\\", "")
                     .replace("\n", "")
-                    .split("\\s*,\\s*"));
+                    .split("\\s*,\\s+"));
         component.getProperties().remove(env.get());
         for (String envValue : envValues) {
-          String[] envParts = envValue.split("=");
+          String[] envParts = envValue.split("=",2);
           if (envParts.length == 2) {
             component
                 .getProperties()
@@ -188,7 +188,7 @@ public class DockerPostProcessor {
                 .replace("[", "")
                 .replace("\\", "")
                 .replace("\n", "")
-                .replace("\"", "")
+                .replace("(?<!\\\\)\"", "") // do not replace escaped quotes
                 .replace(",", "")
                 .trim();
         arrayString.setValue(value);

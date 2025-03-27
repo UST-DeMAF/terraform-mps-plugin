@@ -210,7 +210,7 @@ public class AnalysisService {
         nextline = reader.readLine();
         while (!nextline.startsWith("}")) {
           // Parse Argument
-          if (nextline.contains("=")) {
+          if (!nextline.trim().startsWith("#") && nextline.contains("=")) {
             resource.addArguments(
                 parseArgument(reader, nextline, lines, lineNumber, comprehensibility, ""));
             lineNumber =
@@ -226,7 +226,7 @@ public class AnalysisService {
               lineNumber++;
               nextline = reader.readLine();
               while (!nextline.trim().startsWith("}")) {
-                if (nextline.contains("=")) {
+                if (!nextline.trim().startsWith("#") && nextline.contains("=")) {
                   block.addArguments(
                       parseArgument(reader, nextline, lines, lineNumber, comprehensibility, ""));
                   lineNumber =
@@ -330,7 +330,9 @@ public class AnalysisService {
         currentLine = reader.readLine();
         lineNumber++;
         listElements.addAll(
-            Arrays.stream(currentLine.split(",")).map(String::trim).collect(Collectors.toList()));
+            Arrays.stream(currentLine.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"))
+                    .map(String::trim)
+                    .collect(Collectors.toList()));
         lines.add(new Line(lineNumber, comprehensibility, true));
       }
       arguments.add(
@@ -338,13 +340,13 @@ public class AnalysisService {
               argumentIdentifier,
               listElements.toString().replaceFirst("^\\[\\[,?\\s*", "[")
                       .replaceFirst("]]$", "]")
-                      .replaceAll("\"", "")));
+                      .replaceAll("(?<!\\\\)\"", ""))); //do not replace escaped quotes
       // map Key/value pairs can be separated by either a comma or a line break.
       // The values in a map can be arbitrary expressions.
     } else if (argumentExpression.startsWith("{")) {
       String argumentExpressionLine = argumentExpression.replaceFirst("\\{", "");
       while (!argumentExpressionLine.contains("}")) {
-        if (argumentExpressionLine.contains("=")) {
+        if (!argumentExpressionLine.trim().startsWith("#") && argumentExpressionLine.contains("=")) {
           List<String> listOfArguments =
               Arrays.stream(argumentExpressionLine.split(","))
                   .map(String::trim)
@@ -361,7 +363,7 @@ public class AnalysisService {
         argumentExpressionLine = reader.readLine();
         lineNumber++;
       }
-      if (argumentExpressionLine.contains("=")) {
+      if (!argumentExpressionLine.trim().startsWith("#") && argumentExpressionLine.contains("=")) {
         argumentExpressionLine = argumentExpressionLine.replace("}", "");
         List<String> listOfArguments =
             Arrays.stream(argumentExpressionLine.split(","))
@@ -391,5 +393,6 @@ public class AnalysisService {
   private void clearVariables() {
     resources.clear();
     variables.clear();
+    providers.clear();
   }
 }
