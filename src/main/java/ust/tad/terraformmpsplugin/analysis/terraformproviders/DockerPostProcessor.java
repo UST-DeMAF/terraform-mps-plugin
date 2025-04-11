@@ -205,9 +205,9 @@ public class DockerPostProcessor {
     ComponentType dockerEngineType = new ComponentType();
     dockerEngineType.setName("DockerEngine");
     dockerEngineType.setParentType(tadm.getComponentTypes().stream()
-            .filter(cmpType -> "BaseType".equals(cmpType.getName()))
+            .filter(cmpType -> "ContainerPlatform".equals(cmpType.getName()))
             .findFirst()
-            .orElseThrow());
+            .orElse(createContainerPlatformType(tadm)));
     tadm.getComponentTypes().add(dockerEngineType);
 
     Component dockerEngine =
@@ -220,6 +220,23 @@ public class DockerPostProcessor {
             null,
             Confidence.SUSPECTED);
     tadm.getComponents().add(dockerEngine);
+  }
+
+  /**
+   * Creates the common container platform type.
+   *
+   * @param tadm the tadm to be modified
+   * @return the newly created container platform type.
+   */
+  private ComponentType createContainerPlatformType(TechnologyAgnosticDeploymentModel tadm) {
+    ComponentType cpType = new ComponentType();
+    cpType.setName("ContainerPlatform");
+    cpType.setParentType(tadm.getComponentTypes().stream()
+            .filter(cmpType -> "BaseType".equals(cmpType.getName()))
+            .findFirst()
+            .orElseThrow());
+    tadm.getComponentTypes().add(cpType);
+    return cpType;
   }
 
   /**
