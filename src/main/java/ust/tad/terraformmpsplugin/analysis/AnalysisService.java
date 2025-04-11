@@ -394,5 +394,6 @@ public class AnalysisService {
     resources.clear();
     variables.clear();
     providers.clear();
+    newEmbeddedDeploymentModelIndexes.clear();
   }
 }
