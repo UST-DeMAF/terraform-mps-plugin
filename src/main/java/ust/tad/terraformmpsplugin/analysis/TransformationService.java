@@ -1,7 +1,5 @@
 package ust.tad.terraformmpsplugin.analysis;
 
-import static ust.tad.terraformmpsplugin.analysis.util.ComponentTypePostProcessor.mergeDuplicateComponentTypes;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -11,14 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.logging.Logger;
 
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import ust.tad.terraformmpsplugin.analysis.terraformproviders.*;
 import ust.tad.terraformmpsplugin.analysistask.AnalysisTaskResponseSender;
 import ust.tad.terraformmpsplugin.models.tadm.*;
 import ust.tad.terraformmpsplugin.terraformmodel.TerraformDeploymentModel;
@@ -31,31 +27,20 @@ public class TransformationService {
   @Value("${mps.inputModel.path}")
   private String mpsInputPath;
 
+  @Value("${mps.inputTADM.path}")
+  private String mpsInputTADMPath;
+
   @Value("${mps.result.path}")
   private String mpsOutputPath;
 
-  @Value("${runProviderPostProcessors}")
-  private boolean runProviderPostProcessors;
-
-  @Autowired private AzureRMPostProcessor azureRMPostProcessor;
-
-  @Autowired private GooglePostProcessor googlePostProcessor;
-
-  @Autowired private KubernetesPostProcessor kubernetesPostProcessor;
-
-  @Autowired private DockerPostProcessor dockerPostProcessor;
-
   @Autowired private AnalysisTaskResponseSender analysisTaskResponseSender;
-
-  private final Logger logger = Logger.getLogger(this.getClass().getName());
 
   /**
    * Transforms given the internal Terraform model to an EDMM model. Uses the MPS project for a
    * model-to-model transformation. In the first step, creates a file containing the tsdm model in
    * the MPS Terraform language from the given internal Terraform model. Then, the MPS
    * transformation is run, using the Gradle build scripts. After that, the resulting EDMM model is
-   * imported and added to the already existing technology-agnostic deployment model. If configured,
-   * provider-specific post-processors are run.
+   * imported.
    *
    * @param tadm the technology-agnostic deployment model that the transformation result shall be
    *     added to
@@ -70,16 +55,14 @@ public class TransformationService {
       final TerraformDeploymentModel terraformDeploymentModel)
       throws IOException {
     createMPSTerraformDeploymentModel(terraformDeploymentModel);
+    createMPSExistingTADMInput(tadm);
     runMPSTransformation();
     TechnologyAgnosticDeploymentModel transformationResult = importMPSResult();
-    TechnologyAgnosticDeploymentModel mergedResult =
-        mergeDuplicateComponentTypes(transformationResult);
-    tadm.addFromOtherTADM(mergedResult);
-    if (runProviderPostProcessors) {
-      tadm = postProcessTADM(tadm);
-    }
+    transformationResult.setTransformationProcessId(tadm.getTransformationProcessId());
+    transformationResult.setId(tadm.getId());
+    removeTransformationMarker(transformationResult);
     sendDockerImageAnalysisTask(taskId, transformationResult, tadm);
-    return tadm;
+    return transformationResult;
   }
 
   /**
@@ -94,6 +77,20 @@ public class TransformationService {
       final TerraformDeploymentModel terraformDeploymentModel) throws IOException {
     XmlMapper xmlMapper = new XmlMapper();
     xmlMapper.writeValue(new File(mpsInputPath), terraformDeploymentModel);
+  }
+
+  /**
+   * Output the existing TADM to an XML file on the file system using the Jackson
+   * ObjectMapper for XML. The location on the file system is where the MPS project expects the
+   * input model.
+   *
+   * @param tadm the existing TADM to transform.
+   * @throws IOException if the XML file cannot be created.
+   */
+  private void createMPSExistingTADMInput(
+          final TechnologyAgnosticDeploymentModel tadm) throws IOException {
+    XmlMapper xmlMapper = new XmlMapper();
+    xmlMapper.writeValue(new File(mpsInputTADMPath), tadm);
   }
 
   /**
@@ -135,52 +132,14 @@ public class TransformationService {
   }
 
   /**
-   * Run post-processing steps of the technology-agnostic deployment model for specific Terraform
-   * Providers. Each available post-processor is only run if it is applicable for the given
-   * technology-agnostic deployment model If no post-processor is applicable or the post-processor
-   * fails, the technology-agnostic deployment model remains unchanged.
+   * Remove the property used as transformation marker from the transformation result
    *
-   * @param tadm the technology-agnostic deployment model to post-process
-   * @return the modified technology-agnostic deployment model or the original one of the processing
-   *     failed
+   * @param transformationResult the tadm with the transformation result.
    */
-  private TechnologyAgnosticDeploymentModel postProcessTADM(
-      TechnologyAgnosticDeploymentModel tadm) {
-    if (azureRMPostProcessor.isPostProcessorApplicable(tadm)) {
-      try {
-        tadm = azureRMPostProcessor.runPostProcessor(tadm);
-      } catch (PostProcessorFailedException e) {
-        logger.warning("Post Processor for provider AzureRM failed with message: " +
-                e.getMessage());
-      }
-    }
-    if (googlePostProcessor.isPostProcessorApplicable(tadm)) {
-      try {
-        tadm = googlePostProcessor.runPostProcessor(tadm);
-      } catch (PostProcessorFailedException e) {
-        logger.warning("Post Processor for provider Google failed with message: " +
-                e.getMessage());
-      }
-    }
-    if (kubernetesPostProcessor.isPostProcessorApplicable(tadm)) {
-      try {
-        tadm = kubernetesPostProcessor.runPostProcessor(tadm);
-      } catch (PostProcessorFailedException e) {
-        logger.warning("Post Processor for provider Kubernetes failed with message: " +
-                e.getMessage());
-      }
-    }
-    if (dockerPostProcessor.isPostProcessorApplicable(tadm)) {
-      try {
-        tadm = dockerPostProcessor.runPostProcessor(tadm);
-      } catch (PostProcessorFailedException
-          | InvalidPropertyValueException
-          | InvalidRelationException e) {
-        logger.warning("Post Processor for provider Docker failed with message: " +
-                e.getMessage());
-      }
-    }
-    return tadm;
+  private void removeTransformationMarker(TechnologyAgnosticDeploymentModel transformationResult) {
+    List<Property> properties = transformationResult.getProperties();
+    properties.removeIf(property -> property.getKey().equals("transformationMarker"));
+    transformationResult.setProperties(properties);
   }
 
   /**
@@ -195,7 +154,7 @@ public class TransformationService {
                                            TechnologyAgnosticDeploymentModel tadm) {
     List<String> componentsToAnalyze = new ArrayList<>();
     for (Component component : transformationResult.getComponents()) {
-      if (tadm.getComponents().contains(component) && component.getArtifacts().stream().anyMatch(
+      if (!tadm.getComponents().contains(component) && component.getArtifacts().stream().anyMatch(
               artifact -> artifact.getType().equals("docker_image"))) {
         componentsToAnalyze.add(component.getId());
       }

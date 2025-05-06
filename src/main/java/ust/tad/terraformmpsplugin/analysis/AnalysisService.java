@@ -340,7 +340,7 @@ public class AnalysisService {
               argumentIdentifier,
               listElements.toString().replaceFirst("^\\[\\[,?\\s*", "[")
                       .replaceFirst("]]$", "]")
-                      .replaceAll("(?<!\\\\)\"", ""))); //do not replace escaped quotes
+                      .replaceFirst(",\\s*]", "]")));
       // map Key/value pairs can be separated by either a comma or a line break.
       // The values in a map can be arbitrary expressions.
     } else if (argumentExpression.startsWith("{")) {
