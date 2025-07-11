@@ -24,6 +24,48 @@ resource "google_container_cluster" "primary" {
   }
 }
 
+resource "helm_release" "postgres_db" {
+  name       = "postgres-db"
+  repository = "oci://registry-1.docker.io/bitnamicharts"
+  chart      = "postgresql"
+
+  set {
+    name  = "global.postgresql.auth.database"
+    value = "postgres-db"
+  }
+
+  set {
+    name  = "postgres.auth.enablePostgresUser"
+    value = "false"
+  }
+
+  set {
+    name  = "global.postgresql.auth.username"
+    value = "postgresUser"
+  }
+}
+
+resource "helm_release" "postgres_db-2" {
+  name       = "postgres-db-2"
+  repository = "https://charts.bitnami.com/bitnami"
+  chart      = "postgresql"
+
+  set {
+    name  = "global.postgresql.auth.database"
+    value = "postgres-db-2"
+  }
+
+  set {
+    name  = "postgres.auth.enablePostgresUser"
+    value = "false"
+  }
+
+  set {
+    name  = "global.postgresql.auth.username"
+    value = "postgresUser"
+  }
+}
+
 variable "cluster_name" {
   default = "marcellus-wallace"
   type = string

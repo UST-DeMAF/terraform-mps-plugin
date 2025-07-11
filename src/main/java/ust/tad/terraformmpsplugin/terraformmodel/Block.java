@@ -1,8 +1,7 @@
 package ust.tad.terraformmpsplugin.terraformmodel;
 
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Block {
 
@@ -96,4 +95,40 @@ public class Block {
       this.addArgument(argument);
     }
   }
+
+  public Block findNestedBlockByBlockType(List<String> nestedBlockTypes) throws BlockNotFoundException {
+    String nestedBlockType = nestedBlockTypes.get(0);
+    Optional<Block> block =
+            this.getNestedBlocks().stream().filter(nestedBlock -> nestedBlock.getBlockType().equals(nestedBlockType)).findFirst();
+    if (block.isPresent()) {
+      if (nestedBlockTypes.size() == 1) {
+        return block.get();
+      } else {
+        return block.get().findNestedBlockByBlockType(nestedBlockTypes.subList(1,
+                nestedBlockTypes.size()));
+      }
+    } else {
+      throw new BlockNotFoundException("Nested block with type " + blockType + " not found in " + "block " + this.getBlockType());
+    }
+  }
+
+  public List<Block> findAllNestedBlocksByBlockType(String nestedBlockType) throws BlockNotFoundException {
+    List<Block> blocks =
+            this.getNestedBlocks().stream().filter(nestedBlock -> nestedBlock.getBlockType().equals(nestedBlockType)).collect(Collectors.toList());
+    if (!blocks.isEmpty()) {
+      return blocks;
+    } else {
+      throw new BlockNotFoundException("Nested blocks with type " + blockType + " not found in " + "block " + this.getBlockType());
+    }
+  }
+
+  public Argument findArgumentByIdentifier(String identifier) throws ArgumentNotFoundException {
+    Optional<Argument> argument =
+            this.getArguments().stream().filter(blockArgument -> blockArgument.getIdentifier().equals(identifier)).findFirst();
+    if (argument.isPresent()) {
+      return argument.get();
+    } else
+      throw new ArgumentNotFoundException("Block with type " + blockType + " does not have an " + "argument with identifier " + identifier);
+  }
+
 }

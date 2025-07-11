@@ -167,7 +167,6 @@ public class AnalysisService {
                 }
             }
         }
-        System.out.println("Parsed Terraform Model: " + terraformDeploymentModel);
         this.tadm =
                 transformationService.transformInternalToTADM(taskId, this.tadm, terraformDeploymentModel);
     }

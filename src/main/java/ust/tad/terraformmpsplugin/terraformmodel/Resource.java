@@ -1,8 +1,6 @@
 package ust.tad.terraformmpsplugin.terraformmodel;
 
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 public class Resource {
 
@@ -124,5 +122,19 @@ public class Resource {
 
   public void addBlock(Block block) {
     this.blocks.add(block);
+  }
+
+  public Block getBlockByBlockType(String blockType, List<String> nestedBlockTypes) throws BlockNotFoundException {
+    Optional<Block> block =
+            this.getBlocks().stream().filter(resourceBlock -> resourceBlock.getBlockType().equals(blockType)).findFirst();
+    if (block.isPresent()) {
+      if (nestedBlockTypes.isEmpty()) {
+        return block.get();
+      } else {
+        return block.get().findNestedBlockByBlockType(nestedBlockTypes);
+      }
+    } else {
+      throw new BlockNotFoundException("Block with type " + blockType + " not found in resource " + this.getResourceName());
+    }
   }
 }
