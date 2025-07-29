@@ -8,6 +8,7 @@ WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 COPY mps-transformation-terraform ./mps-transformation-terraform
+COPY --chmod=175 hcl2json/hcl2json_linux_amd64 ./hcl2json/hcl2json
 
 # Create the necessary directory for transformation input
 RUN mkdir -p /app/mps-transformation-terraform/transformationInput

@@ -43,7 +43,7 @@ public class SerializeXMLTest {
     Argument argument2 = new Argument("key2", "val2");
     Argument argument3 = new Argument("key3", "val3");
     Argument argumentFromVariable = new Argument("keyVar", "var.key");
-    Block block = new Block("newBlockType", Set.of(argument2, argument3));
+    Block block = new Block("newBlockType", Set.of(), Set.of(argument2, argument3));
 
     Resource resource =
         new Resource("newResourceType", "newResource", Set.of(argument), Set.of(block));

@@ -160,4 +160,25 @@ public class AnalysisTaskResponseSender {
     request.setTadmEntities(tadmEntities);
     sendEmbeddedDeploymentModelAnalysisRequest(request);
   }
+
+  /**
+   * Send an Embedded Deployment Model Analysis Task Request containing an embedded Kubernetes
+   * deployment model to analyze.
+   *
+   * @param taskId the ID of the current analysis task.
+   * @param transformationProcessId the ID of the current transformation process.
+   * @param technology the deployment technology of the embedded deployment model.
+   * @param kubernetesDeploymentModelId the ID of the embedded Kubernetes deployment model.
+   */
+  public void sendEmbeddedDeploymentModelAnalysisRequestWithEmbeddedDM(
+          UUID taskId, UUID transformationProcessId, String technology,
+          UUID kubernetesDeploymentModelId) {
+    EmbeddedDeploymentModelAnalysisRequest request = new EmbeddedDeploymentModelAnalysisRequest();
+    request.setParentTaskId(taskId);
+    request.setTransformationProcessId(transformationProcessId);
+    request.setTechnology(technology);
+    request.setOptions(List.of("extractedKubernetesModel=" + kubernetesDeploymentModelId));
+    sendEmbeddedDeploymentModelAnalysisRequest(request);
+  }
+
 }

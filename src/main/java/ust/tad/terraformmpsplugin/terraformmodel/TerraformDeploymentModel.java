@@ -68,4 +68,25 @@ public class TerraformDeploymentModel {
         + providers
         + '}';
   }
+
+  public Set<Resource> addAllResources(Set<Resource> resourcesToAdd) {
+    this.resources.addAll(resourcesToAdd);
+    return this.getResources();
+  }
+
+  public Set<Variable> addVariableIfNotPresent(Variable variableToAdd) {
+    if (this.getVariables().stream().noneMatch(variable ->
+            variable.getIdentifier().equals(variableToAdd.getIdentifier()))) {
+      this.variables.add(variableToAdd);
+    }
+    return this.getVariables();
+  }
+
+  public Set<Provider> addProviderIfNotPresent(Provider providerToAdd) {
+    if (this.getProviders().stream().noneMatch(provider ->
+            provider.getName().equals(providerToAdd.getName()))) {
+      this.providers.add(providerToAdd);
+    }
+    return this.getProviders();
+  }
 }
