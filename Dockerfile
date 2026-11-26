@@ -32,12 +32,8 @@ RUN if [ "$SLIM" != "1" ]; then \
 RUN rm -rf /app/mps-transformation-terraform/build/download
 
 # Stage 2: Create a minimal runtime image using the Eclipse Temurin 11 JRE
+# The image already contains curl, which is used for health checks
 FROM eclipse-temurin:11-jre
-
-RUN apt-get update \
-    && apt-get install --no-install-recommends -y curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory for the runtime stage
 WORKDIR /app
