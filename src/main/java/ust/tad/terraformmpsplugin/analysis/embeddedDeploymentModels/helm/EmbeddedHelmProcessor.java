@@ -54,7 +54,7 @@ public class EmbeddedHelmProcessor extends BaseEmbeddedDeploymentModelProcessor 
         return embeddedDeploymentModel;
     }
 
-    private List<String> createHelmCommandsFromResource(Resource helmResource) throws HelmCommandInformationMissingException {
+    List<String> createHelmCommandsFromResource(Resource helmResource) throws HelmCommandInformationMissingException {
         List<String> commands = new ArrayList<>();
         String release = "";
         Optional<Argument> releaseArg =
@@ -105,7 +105,7 @@ public class EmbeddedHelmProcessor extends BaseEmbeddedDeploymentModelProcessor 
                 helmResource.getArguments().stream().filter(argument -> argument.getIdentifier().equals("version")).findFirst();
         if (versionArg.isPresent()) {
             String version = versionArg.get().getExpression();
-            command.append("--version ").append(version);
+            command.append(" --version ").append(version);
         }
         commands.add(command.toString());
         return commands;
