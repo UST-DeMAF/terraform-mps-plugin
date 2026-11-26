@@ -31,8 +31,8 @@ RUN if [ "$SLIM" != "1" ]; then \
 # Remove JBR tarball and MPS/Plugin zips
 RUN rm -rf /app/mps-transformation-terraform/build/download
 
-# Stage 2: Create a minimal runtime image using OpenJDK 11 JRE
-FROM openjdk:11-jre-slim
+# Stage 2: Create a minimal runtime image using the Eclipse Temurin 11 JRE
+FROM eclipse-temurin:11-jre
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y curl \
