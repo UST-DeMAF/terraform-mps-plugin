@@ -25,24 +25,24 @@ public class EmbeddedHelmProcessorTest {
     Resource resource =
         helmRelease(
             Set.of(
-                new Argument("name", "content-service-db"),
-                new Argument("repository", "oci://registry-1.docker.io/bitnamicharts"),
-                new Argument("chart", "postgresql"),
-                new Argument("version", "16.7.17")),
+                new Argument("name", "my-release"),
+                new Argument("repository", "oci://registry.example.com/charts"),
+                new Argument("chart", "my-chart"),
+                new Argument("version", "1.2.3")),
             Set.of(
                 new Block(
                     "set",
                     Set.of(),
                     Set.of(
-                        new Argument("name", "global.postgresql.auth.username"),
-                        new Argument("value", "gits")))));
+                        new Argument("name", "replicaCount"),
+                        new Argument("value", "2")))));
 
     List<String> commands = new EmbeddedHelmProcessor().createHelmCommandsFromResource(resource);
 
     assertEquals(
         List.of(
-            "helm install content-service-db oci://registry-1.docker.io/bitnamicharts/postgresql"
-                + " --set global.postgresql.auth.username=gits --version 16.7.17"),
+            "helm install my-release oci://registry.example.com/charts/my-chart --set replicaCount=2"
+                + " --version 1.2.3"),
         commands);
   }
 
@@ -51,18 +51,18 @@ public class EmbeddedHelmProcessorTest {
     Resource resource =
         helmRelease(
             Set.of(
-                new Argument("name", "dapr"),
-                new Argument("repository", "https://dapr.github.io/helm-charts/"),
-                new Argument("chart", "dapr"),
-                new Argument("version", "1.15.6")),
+                new Argument("name", "other-release"),
+                new Argument("repository", "https://charts.example.com/"),
+                new Argument("chart", "other-chart"),
+                new Argument("version", "4.5.6")),
             Set.of());
 
     List<String> commands = new EmbeddedHelmProcessor().createHelmCommandsFromResource(resource);
 
     assertEquals(
         List.of(
-            "helm repo add dapr https://dapr.github.io/helm-charts/",
-            "helm install dapr dapr/dapr --version 1.15.6"),
+            "helm repo add other-chart https://charts.example.com/",
+            "helm install other-release other-chart/other-chart --version 4.5.6"),
         commands);
   }
 }
